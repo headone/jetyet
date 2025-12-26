@@ -36,6 +36,18 @@ type ClashConfig = {
   up: string;
 };
 
+type KaringConfig = {
+  name: string;
+  password: string;
+  server: string;
+  port: number;
+  "hop-interval": number;
+  "skip-cert-verify": boolean;
+  type: string;
+  down: string;
+  up: string;
+};
+
 class Hysteria2NodeConfigger implements NodeConfigger {
   async create(
     node: Node,
@@ -56,40 +68,20 @@ class Hysteria2NodeConfigger implements NodeConfigger {
       };
       return config;
     }
-    throw new Error(`Unsupported config type: ${configType}`);
-  }
-}
 
-type KaringConfig = {
-  name: string;
-  password: string;
-  server: string;
-  port: number;
-  "hop-interval": number;
-  "skip-cert-verify": boolean;
-  type: string;
-  down: string;
-  up: string;
-};
-
-class Hysteria2KaringNodeConfigger implements NodeConfigger {
-  async create(
-    node: Node,
-    secrets: UserSecrets,
-    configType: ConfigType,
-  ): Promise<any> {
     if (configType === "karing") {
       // 解析端口范围并生成随机端口
       const portParts = node.port.split("-");
       const minPort = Number(portParts[0]);
       const maxPort = Number(portParts[1]);
-      
+
       if (isNaN(minPort) || isNaN(maxPort)) {
         throw new Error(`Invalid port range: ${node.port}`);
       }
-      
-      const port = Math.floor(Math.random() * (maxPort - minPort + 1)) + minPort;
-      
+
+      const port =
+        Math.floor(Math.random() * (maxPort - minPort + 1)) + minPort;
+
       const config: KaringConfig = {
         name: node.name,
         password: secrets["hysteria2"],
@@ -103,8 +95,9 @@ class Hysteria2KaringNodeConfigger implements NodeConfigger {
       };
       return config;
     }
+
     throw new Error(`Unsupported config type: ${configType}`);
   }
 }
 
-export { Hysteria2Authenticator, Hysteria2NodeConfigger, Hysteria2KaringNodeConfigger };
+export { Hysteria2Authenticator, Hysteria2NodeConfigger };
