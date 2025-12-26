@@ -1,9 +1,4 @@
-import {
-  validateToken,
-  authenticate,
-  unauthenticate,
-  choosePassword,
-} from "./auth";
+import { validateToken, authenticate, unauthenticate } from "./auth";
 import { getAllUsers, createUser, deleteUser } from "./user";
 import { getAllNodes, deleteNode, createNode, assignNode } from "./node";
 
@@ -25,10 +20,6 @@ const apiTableDriven = new Map<
   [
     { path: "/api/auth/logout", method: "POST" },
     (req, _, isAuthenticated) => unauthenticate(isAuthenticated),
-  ],
-  [
-    { path: "/api/auth/admin", method: "PUT" },
-    (req, _, isAuthenticated) => choosePassword(req, isAuthenticated),
   ],
   // user api
   [

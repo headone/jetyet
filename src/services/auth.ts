@@ -1,8 +1,7 @@
-import { secrets } from "bun";
 import type { AdminConfig } from "../types";
 
-const SERVICE_NAME = "auth-service";
-const SECRET_NAME = "admin-password";
+const ADMIN_NAME = Bun.env.ADMIN_NAME;
+const ADMIN_PASSWORD = Bun.env.ADMIN_PASSWORD;
 let adminToken: string | null = null;
 
 const MAX_ATTEMPTS = 3;
@@ -29,20 +28,7 @@ async function authenticate(req: Request): Promise<Response> {
     return new Response(null, { status: 401 });
   }
 
-  let adminPassword = await secrets.get({
-    service: SERVICE_NAME,
-    name: SECRET_NAME,
-  });
-  if (!adminPassword) {
-    // use default password
-    adminPassword = "admin";
-    await secrets.set({
-      service: SERVICE_NAME,
-      name: SECRET_NAME,
-      value: adminPassword,
-    });
-  }
-  if (username !== "admin" || password !== adminPassword) {
+  if (username !== ADMIN_NAME || password !== ADMIN_PASSWORD) {
     userAttempts.count++;
     if (userAttempts.count >= MAX_ATTEMPTS) {
       userAttempts.lockoutUntil = Date.now() + LOCKOUT_TIME;
@@ -68,28 +54,4 @@ function unauthenticate(isAuthenticated: boolean): Response {
   return new Response(null, { status: 204 });
 }
 
-async function choosePassword(
-  req: Request,
-  isAuthenticated: boolean,
-): Promise<Response> {
-  if (!isAuthenticated) {
-    return new Response(null, { status: 401 });
-  }
-
-  const { password } = (await req.json()) as AdminConfig;
-  if (!password) {
-    return new Response(null, { status: 400 });
-  }
-
-  await secrets.set({
-    service: SERVICE_NAME,
-    name: SECRET_NAME,
-    value: password,
-  });
-
-  unauthenticate(true);
-
-  return new Response(null, { status: 204 });
-}
-
-export { validateToken, authenticate, unauthenticate, choosePassword };
+export { validateToken, authenticate, unauthenticate };
