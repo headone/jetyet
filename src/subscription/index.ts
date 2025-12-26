@@ -130,6 +130,7 @@ proxy-groups:
     - name: Proxy
       proxies:
         - Auto
+        # inject
       type: select
     - interval: 300
       name: Auto
@@ -172,7 +173,9 @@ class ClashConfigger implements Configger {
 
     // inject
     baseConfig.proxies = filteredConfigs;
-    baseConfig["proxy-groups"][1].proxies = this.nodes.map((node) => node.name);
+    const allProxies = this.nodes.map((node) => node.name);
+    baseConfig["proxy-groups"][0].proxies.push(...allProxies);
+    baseConfig["proxy-groups"][1].proxies = allProxies;
 
     return YAML.stringify(baseConfig, null, 2);
   }
