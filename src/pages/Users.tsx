@@ -38,7 +38,6 @@ import { Plus, RefreshCw, Trash2, LinkIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type UserWithNodes, type Node, type UserNode } from "@/types";
 import { toast } from "sonner";
-import clipboard from "clipboardy";
 
 export const Users = () => {
   const [users, setUsers] = useState<UserWithNodes[]>([]);
@@ -113,7 +112,7 @@ export const Users = () => {
 
   const copySubLink = async (subKey: string) => {
     const subLink = `${window.location.origin}/sub/${subKey}?type=clash&format=yaml`;
-    await clipboard.write(subLink);
+    await navigator.clipboard.writeText(subLink);
     toast.success("Subscription link copied to clipboard");
   };
 
