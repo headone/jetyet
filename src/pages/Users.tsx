@@ -31,10 +31,16 @@ import {
   DialogTrigger,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
-import { Plus, RefreshCw, Trash2, LinkIcon } from "lucide-react";
+import { Plus, RefreshCw, Trash2, LinkIcon, Network, Shuffle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type UserWithNodes, type Node, type UserNode } from "@/types";
 import { toast } from "sonner";
@@ -111,14 +117,15 @@ export const Users = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const copySubLink = async (subKey: string) => {
-    const subLink = `${window.location.origin}/sub/${subKey}?type=clash&format=yaml`;
+  const copySubLink = async (subKey: string, type: "clash" | "karing" = "clash") => {
+    const subLink = `${window.location.origin}/sub/${subKey}?type=${type}&format=yaml`;
     try {
       await navigator.clipboard.writeText(subLink);
     } catch (_) {
       copy(subLink);
     }
-    toast.success("Subscription link copied to clipboard");
+    const typeName = type === "clash" ? "Clash" : "Karing";
+    toast.success(`${typeName} subscription link copied to clipboard`);
   };
 
   return (
@@ -229,14 +236,33 @@ export const Users = () => {
                         >
                           <RefreshCw className="h-4 w-4" />
                         </Button>*/}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0"
-                          onClick={() => copySubLink(user.subKey)}
-                        >
-                          <LinkIcon className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-all duration-200 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+                            <LinkIcon className="h-4 w-4" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuItem
+                              onClick={() => copySubLink(user.subKey, "clash")}
+                              className="cursor-pointer py-3"
+                            >
+                              <Network className="h-4 w-4 mr-3 text-blue-500" />
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-medium">Clash</span>
+                                <span className="text-xs text-muted-foreground">Standard port range configuration</span>
+                              </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => copySubLink(user.subKey, "karing")}
+                              className="cursor-pointer py-3"
+                            >
+                              <Shuffle className="h-4 w-4 mr-3 text-green-500" />
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-medium">Karing</span>
+                                <span className="text-xs text-muted-foreground">Random port for each access</span>
+                              </div>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <Dialog>
                           <DialogTrigger>
                             <div

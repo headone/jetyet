@@ -1,5 +1,5 @@
 import { type NodeType, type Node, type UserSecrets } from "@/types";
-import { Hysteria2Authenticator, Hysteria2NodeConfigger } from "./hysteria2";
+import { Hysteria2Authenticator, Hysteria2NodeConfigger, Hysteria2KaringNodeConfigger } from "./hysteria2";
 import { YAML } from "bun";
 
 interface Authenticator<P = any, R = any> {
@@ -15,7 +15,7 @@ function buildAuthenticator(type: string | NodeType): Authenticator<any, any> {
   throw new Error(`Unsupported authenticator type: ${type}`);
 }
 
-type ConfigType = "clash";
+type ConfigType = "clash" | "karing";
 
 interface NodeConfigger {
   create(
@@ -38,6 +38,9 @@ function buildConfigger(
 ): Configger {
   if (type === "clash") {
     return new ClashConfigger(nodes, secrets);
+  }
+  if (type === "karing") {
+    return new KaringConfigger(nodes, secrets);
   }
 
   throw new Error(`Unsupported config type: ${type}`);
@@ -195,6 +198,46 @@ class ClashConfigger implements Configger {
       this.nodes.map(async (node) => {
         if (node.type === "hysteria2") {
           const config = await hysteria2NodeConfigger.create(
+            node,
+            this.secrets,
+            this.type,
+          );
+          return config;
+        }
+        return undefined;
+      }),
+    );
+    const filteredConfigs = configs.filter((config) => config !== undefined);
+
+    // inject
+    baseConfig.proxies = filteredConfigs;
+    const allProxies = this.nodes.map((node) => node.name);
+    baseConfig["proxy-groups"][0].proxies.push(...allProxies);
+    baseConfig["proxy-groups"][1].proxies = allProxies;
+
+    return YAML.stringify(baseConfig, null, 2);
+  }
+}
+
+class KaringConfigger implements Configger {
+  type: ConfigType = "karing";
+  nodes: Node[];
+  secrets: UserSecrets;
+
+  constructor(nodes: Node[], secrets: UserSecrets) {
+    this.nodes = nodes;
+    this.secrets = secrets;
+  }
+
+  async toYAML(): Promise<string> {
+    const baseConfig = YAML.parse(defaultClashBaseConfig) as any;
+
+    const hysteria2KaringNodeConfigger = new Hysteria2KaringNodeConfigger();
+
+    const configs = await Promise.all(
+      this.nodes.map(async (node) => {
+        if (node.type === "hysteria2") {
+          const config = await hysteria2KaringNodeConfigger.create(
             node,
             this.secrets,
             this.type,
