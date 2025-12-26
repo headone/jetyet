@@ -5,6 +5,8 @@ import { buildAuthenticator, buildConfigger } from "./subscription";
 import { getUserInfoBySubKey } from "./services/user";
 
 const server = serve({
+  hostname: "0.0.0.0",
+
   fetch: routeHandler,
 
   routes: {
