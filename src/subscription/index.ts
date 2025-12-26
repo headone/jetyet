@@ -139,6 +139,41 @@ proxy-groups:
       tolerance: 50
       type: url-test
       url: http://www.gstatic.com/generate_204
+rules:
+  - RULE-SET,AWAvenue-Ads,REJECT
+  - GEOSITE,category-scholar-!cn,Proxy
+  - GEOSITE,apple,Proxy
+  - GEOSITE,apple-cn,Proxy
+  - GEOSITE,ehentai,Proxy
+  - GEOSITE,github,Proxy
+  - GEOSITE,twitter,Proxy
+  - GEOSITE,youtube,Proxy
+  - GEOSITE,google,Proxy
+  - GEOSITE,google-cn,Proxy # Google CN 不走代理会导致香港等地区节点 Play Store 异常
+  - GEOSITE,telegram,Proxy
+  - GEOSITE,netflix,Proxy
+  - GEOSITE,tiktok,Proxy
+  - GEOSITE,bahamut,Proxy
+  - GEOSITE,spotify,Proxy
+  - GEOSITE,pixiv,Proxy
+  - GEOSITE,steam@cn,DIRECT
+  - GEOSITE,steam,Proxy
+  - GEOSITE,onedrive,Proxy
+  - GEOSITE,microsoft,Proxy
+  - GEOSITE,geolocation-!cn,Proxy
+  - GEOIP,google,Proxy
+  - GEOIP,netflix,Proxy
+  - GEOIP,telegram,Proxy
+  - GEOIP,twitter,Proxy
+  - GEOSITE,CN,DIRECT
+  - GEOIP,CN,DIRECT
+  # 绕过局域网地址
+  - IP-CIDR,10.0.0.0/8,DIRECT
+  - IP-CIDR,172.16.0.0/12,DIRECT
+  - IP-CIDR,192.168.0.0/16,DIRECT
+  - IP-CIDR,100.64.0.0/10,DIRECT
+  - IP-CIDR,127.0.0.0/8,DIRECT
+  - MATCH,Proxy
 `;
 
 class ClashConfigger implements Configger {
