@@ -20,7 +20,7 @@ class SQLiteDB implements DB {
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY NOT NULL DEFAULT (lower(hex(randomblob(16)))),
         name TEXT NOT NULL UNIQUE,
-        sub_key TEXT NOT NULL,
+        sub_key TEXT NOT NULL UNIQUE,
         status INTEGER NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL

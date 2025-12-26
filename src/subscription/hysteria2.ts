@@ -1,5 +1,11 @@
-import { type Authenticator } from "./index";
+import {
+  type Authenticator,
+  type ConfigType,
+  type NodeConfigger,
+} from "./index";
+import { type Node, type UserSecrets } from "@/types";
 import { getUserByUserSecrets } from "@/services/user";
+import { YAML } from "bun";
 
 type Params = {
   addr: string;
@@ -18,4 +24,40 @@ class Hysteria2Authenticator implements Authenticator<Params, Result> {
   }
 }
 
-export { Hysteria2Authenticator };
+type ClashConfig = {
+  name: string;
+  password: string;
+  server: string;
+  ports: string;
+  "hop-interval": number;
+  "skip-cert-verify": boolean;
+  type: string;
+  down: string;
+  up: string;
+};
+
+class Hysteria2NodeConfigger implements NodeConfigger {
+  async create(
+    node: Node,
+    secrets: UserSecrets,
+    configType: ConfigType,
+  ): Promise<any> {
+    if (configType === "clash") {
+      const config: ClashConfig = {
+        name: node.name,
+        password: secrets["hysteria2"],
+        server: node.host,
+        ports: node.port,
+        "hop-interval": 10,
+        "skip-cert-verify": true,
+        type: "hysteria2",
+        down: "1000",
+        up: "1000",
+      };
+      return config;
+    }
+    throw new Error(`Unsupported config type: ${configType}`);
+  }
+}
+
+export { Hysteria2Authenticator, Hysteria2NodeConfigger };

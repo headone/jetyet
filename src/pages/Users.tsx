@@ -38,6 +38,7 @@ import { Plus, RefreshCw, Trash2, LinkIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type UserWithNodes, type Node, type UserNode } from "@/types";
 import { toast } from "sonner";
+import clipboard from "clipboardy";
 
 export const Users = () => {
   const [users, setUsers] = useState<UserWithNodes[]>([]);
@@ -108,6 +109,12 @@ export const Users = () => {
     if (bytes === 0) return "0 B";
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
+  const copySubLink = async (subKey: string) => {
+    const subLink = `${window.location.origin}/sub/${subKey}?type=clash&format=yaml`;
+    await clipboard.write(subLink);
+    toast.success("Subscription link copied to clipboard");
   };
 
   return (
@@ -222,7 +229,7 @@ export const Users = () => {
                           size="sm"
                           variant="ghost"
                           className="h-8 w-8 p-0"
-                          // onClick={() => generateClash(user)}
+                          onClick={() => copySubLink(user.subKey)}
                         >
                           <LinkIcon className="h-4 w-4" />
                         </Button>

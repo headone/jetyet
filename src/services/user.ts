@@ -1,6 +1,13 @@
 import { randomUUIDv7 } from "bun";
 import { db } from "@/db";
-import { type User, type UserNode, NODE_TYPES, type NodeType } from "@/types";
+import {
+  type User,
+  type UserNode,
+  NODE_TYPES,
+  type NodeType,
+  type UserSecrets,
+  type Node,
+} from "@/types";
 
 function getAllUsers(isAuthenticated: boolean): Response {
   if (!isAuthenticated) {
@@ -8,7 +15,7 @@ function getAllUsers(isAuthenticated: boolean): Response {
   }
 
   const usersQuery = db.query(
-    "SELECT id, name, status, created_at, updated_at FROM users",
+    "SELECT id, name, sub_key, status, created_at, updated_at FROM users",
   );
   const usersRaw = usersQuery.all() as any[];
 
@@ -84,7 +91,9 @@ async function deleteUser(
 }
 
 async function getUser(id: string): Promise<User | null> {
-  const userQuery = db.query("SELECT * FROM users WHERE id = ?");
+  const userQuery = db.query(
+    "SELECT id, name, sub_key, status, created_at, updated_at FROM users WHERE id = ?",
+  );
   const user = userQuery.get(id) as User | null;
   return user;
 }
@@ -107,10 +116,44 @@ async function getUserByUserSecrets(
     return null;
   }
 
-  const userQuery = db.query("SELECT * FROM users WHERE id = ?");
+  const userQuery = db.query(
+    "SELECT id, name, sub_key, status, created_at, updated_at FROM users WHERE id = ?",
+  );
   const user = userQuery.get(userId.user_id) as User | null;
 
   return user;
 }
 
-export { getAllUsers, createUser, deleteUser, getUser, getUserByUserSecrets };
+async function getUserInfoBySubKey(
+  subKey: string,
+): Promise<(User & { nodes: Node[]; secrets: UserSecrets }) | null> {
+  const userQuery = db.query(
+    "SELECT id, name, sub_key, status, created_at, updated_at FROM users WHERE sub_key = ?",
+  );
+  const user = userQuery.get(subKey) as User | null;
+
+  if (!user) {
+    return null;
+  }
+
+  const nodesQuery = db.query(
+    "SELECT n.id, n.name, n.host, n.port, n.type, n.created_at, n.updated_at FROM nodes AS n JOIN user_nodes AS un ON n.id = un.node_id WHERE un.user_id = ?",
+  );
+  const nodes = nodesQuery.all(user.id) as Node[];
+
+  const secretsQuery = db.query(
+    "SELECT user_id, hysteria2 FROM user_secrets WHERE user_id = ?",
+  );
+  const secrets = secretsQuery.get(user.id) as UserSecrets;
+
+  return { ...user, nodes, secrets };
+}
+
+export {
+  getAllUsers,
+  createUser,
+  deleteUser,
+  getUser,
+  getUserByUserSecrets,
+  getUserInfoBySubKey,
+};

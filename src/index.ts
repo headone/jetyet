@@ -1,16 +1,42 @@
 import { serve } from "bun";
 import index from "./index.html";
 import { routeHandler } from "./services";
-import { buildAuthenticator } from "./subscription";
+import { buildAuthenticator, buildConfigger } from "./subscription";
+import { getUserInfoBySubKey } from "./services/user";
 
 const server = serve({
   fetch: routeHandler,
 
   routes: {
     "/": index,
-    "/sub/:subKey": (req) => {
+    "/sub/:subKey": async (req) => {
       const subKey = req.params.subKey;
-      return new Response(`SubKey: ${subKey}`);
+      const configType = new URL(req.url).searchParams.get("type");
+      const format = new URL(req.url).searchParams.get("format");
+
+      if (!configType || !format) {
+        return new Response(null, { status: 400 });
+      }
+
+      const userInfo = await getUserInfoBySubKey(subKey);
+      if (!userInfo) {
+        return new Response(null, { status: 404 });
+      }
+
+      const configger = buildConfigger(
+        configType,
+        userInfo.nodes,
+        userInfo.secrets,
+      );
+
+      let configStr;
+      if (format === "yaml") {
+        configStr = await configger.toYAML();
+      } else {
+        return new Response(null, { status: 400 });
+      }
+
+      return new Response(configStr);
     },
     "/api/nodes/auth/:type": async (req) => {
       const type = req.params.type;
