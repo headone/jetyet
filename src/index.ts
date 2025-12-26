@@ -31,6 +31,7 @@ const server = serve({
         userInfo.secrets,
       );
 
+      const headers = configger.headers(userInfo);
       let configStr;
       if (format === "yaml") {
         configStr = await configger.toYAML();
@@ -38,11 +39,7 @@ const server = serve({
         return new Response(null, { status: 400 });
       }
 
-      return new Response(configStr, {
-        headers: {
-          'Content-Disposition': `attachment; filename*=UTF-8''jetYet-${encodeURIComponent(userInfo.name)}`
-        }
-      });
+      return new Response(configStr, { headers });
     },
     "/api/nodes/auth/:type": async (req) => {
       const type = req.params.type;

@@ -1,4 +1,4 @@
-import { type NodeType, type Node, type UserSecrets } from "@/types";
+import { type NodeType, type Node, type UserSecrets, type User } from "@/types";
 import { Hysteria2Authenticator, Hysteria2NodeConfigger } from "./hysteria2";
 import { YAML } from "bun";
 
@@ -28,6 +28,7 @@ interface NodeConfigger {
 interface Configger {
   nodes: Node[];
   secrets: UserSecrets;
+  headers(user: User): Record<string, string>;
   toYAML(): Promise<string>;
 }
 
@@ -187,6 +188,17 @@ class ClashConfigger implements Configger {
   constructor(nodes: Node[], secrets: UserSecrets) {
     this.nodes = nodes;
     this.secrets = secrets;
+  }
+
+  headers(user: User): Record<string, string> {
+    const filename = encodeURIComponent(`🛫 jetyet ${user.name}`);
+
+    return {
+      "content-disposition": `attachment; filename*=UTF-8''${filename}`,
+      "profile-update-interval": "24",
+      // "profile-web-page-url": "",
+      // "subscription-userinfo": "upload=1638257504; download=13418441583; total=1073839341568; expire=1791390742",
+    };
   }
 
   async toYAML(): Promise<string> {
