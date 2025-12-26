@@ -1,6 +1,6 @@
 import { randomUUIDv7 } from "bun";
 import { db } from "@/db";
-import { type User, type UserNode, type NodeType } from "@/types";
+import { type User, type UserNode, NODE_TYPES, type NodeType } from "@/types";
 
 function getAllUsers(isAuthenticated: boolean): Response {
   if (!isAuthenticated) {
@@ -93,8 +93,15 @@ async function getUserByUserSecrets(
   secrets: string,
   type: string | NodeType,
 ): Promise<User | null> {
-  const userIdQuery = db.query("SELECT user_id FROM user_secrets WHERE ? = ?");
-  const userId = userIdQuery.get(type, secrets) as { user_id: string };
+  // check type
+  if (!NODE_TYPES.find((nodeType) => nodeType === type)) {
+    throw new Error(`Unsupported authenticator type: ${type}`);
+  }
+
+  const userIdQuery = db.query(
+    `SELECT user_id FROM user_secrets WHERE ${type} = ?`,
+  );
+  const userId = userIdQuery.get(secrets) as { user_id: string };
 
   if (!userId) {
     return null;

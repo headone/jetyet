@@ -14,7 +14,7 @@ class Hysteria2Authenticator implements Authenticator<Params, Result> {
   async auth(params: Params): Promise<Result> {
     // simple auth
     const user = await getUserByUserSecrets(params.auth, this.type);
-    return { ok: !!user, id: user?.id || "" };
+    return { ok: !!user, id: user?.name || "" };
   }
 }
 
