@@ -1,6 +1,7 @@
 import { serve } from "bun";
 import index from "./index.html";
 import { routeHandler } from "./services";
+import { buildAuthenticator } from "./subscription";
 
 const server = serve({
   fetch: routeHandler,
@@ -10,6 +11,15 @@ const server = serve({
     "/sub/:subKey": (req) => {
       const subKey = req.params.subKey;
       return new Response(`SubKey: ${subKey}`);
+    },
+    "/api/nodes/auth/:type": async (req) => {
+      const type = req.params.type;
+      const data = await req.json();
+
+      const authenticator = buildAuthenticator(type);
+      const result = await authenticator.auth(data);
+
+      return Response.json(result);
     },
   },
 

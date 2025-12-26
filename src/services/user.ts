@@ -1,6 +1,6 @@
 import { randomUUIDv7 } from "bun";
 import { db } from "@/db";
-import { type UserNode } from "@/types";
+import { type User, type UserNode, type NodeType } from "@/types";
 
 function getAllUsers(isAuthenticated: boolean): Response {
   if (!isAuthenticated) {
@@ -83,4 +83,27 @@ async function deleteUser(
   return new Response(null, { status: 204 });
 }
 
-export { getAllUsers, createUser, deleteUser };
+async function getUser(id: string): Promise<User | null> {
+  const userQuery = db.query("SELECT * FROM users WHERE id = ?");
+  const user = userQuery.get(id) as User | null;
+  return user;
+}
+
+async function getUserByUserSecrets(
+  secrets: string,
+  type: string | NodeType,
+): Promise<User | null> {
+  const userIdQuery = db.query("SELECT user_id FROM user_secrets WHERE ? = ?");
+  const userId = userIdQuery.get(type, secrets) as { user_id: string };
+
+  if (!userId) {
+    return null;
+  }
+
+  const userQuery = db.query("SELECT * FROM users WHERE id = ?");
+  const user = userQuery.get(userId.user_id) as User | null;
+
+  return user;
+}
+
+export { getAllUsers, createUser, deleteUser, getUser, getUserByUserSecrets };
