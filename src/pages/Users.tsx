@@ -52,56 +52,24 @@ import { useEffect, useState } from "react";
 import { type UserWithNodes, type Node, type UserNode } from "@/types";
 import { toast } from "sonner";
 import copy from "copy-to-clipboard";
+import { apiCall } from "@/client";
 
 export const Users = () => {
   const [users, setUsers] = useState<UserWithNodes[]>([]);
   const [nodes, setNodes] = useState<Node[]>([]);
 
   const fetchUsers = async () => {
-    const response = await fetch("/api/users", {
-      method: "GET",
-      headers: { Authorization: localStorage.getItem("authToken") ?? "" },
-    });
-
-    if (!response.ok) {
-      const errorMsg = `HTTP error! status: ${response.status}`;
-      toast.error(errorMsg);
-      throw new Error(errorMsg);
-    }
-
-    const data = await response.json();
-    setUsers(data);
+    const response = await apiCall("/api/users", "GET");
+    setUsers(response);
   };
 
   const fetchNodes = async () => {
-    const response = await fetch("/api/nodes", {
-      method: "GET",
-      headers: { Authorization: localStorage.getItem("authToken") ?? "" },
-    });
-
-    if (!response.ok) {
-      const errorMsg = `HTTP error! status: ${response.status}`;
-      toast.error(errorMsg);
-      throw new Error(errorMsg);
-    }
-
-    const data = (await response.json()) as Node[];
-    setNodes(data);
+    const response = await apiCall("/api/nodes", "GET");
+    setNodes(response);
   };
 
   const deleteUser = async (id: string) => {
-    const response = await fetch(`/api/users/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: localStorage.getItem("authToken") ?? "",
-      },
-    });
-
-    if (!response.ok) {
-      const errorMsg = `HTTP error! status: ${response.status}`;
-      toast.error(errorMsg);
-      throw new Error(errorMsg);
-    }
+    await apiCall("/api/users/:id", "DELETE", { params: { id } });
 
     fetchUsers();
   };
@@ -360,20 +328,7 @@ const AddUserSheet = ({ onSuccess }: { onSuccess?: () => void }) => {
       return;
     }
 
-    const response = await fetch("/api/users", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: localStorage.getItem("authToken") ?? "",
-      },
-      body: JSON.stringify({ name }),
-    });
-
-    if (!response.ok) {
-      const errorMsg = `HTTP error! status: ${response.status}`;
-      toast.error(errorMsg);
-      throw new Error(errorMsg);
-    }
+    await apiCall("/api/users", "POST", { body: { name } });
 
     toast.success("User added successfully.");
     setOpen(false);
@@ -440,23 +395,10 @@ const AssignDialog = ({
   }, []);
 
   const assignHandler = async () => {
-    async function callApi(node: UserNode, assign: boolean) {
-      const response = await fetch("/api/nodes/assign", {
-        method: "POST",
-        headers: { Authorization: localStorage.getItem("authToken") ?? "" },
-        body: JSON.stringify({
-          userId: userId,
-          nodeId: node?.nodeId,
-          assign,
-        }),
+    const callApi = (node: UserNode, assign: boolean) =>
+      apiCall("/api/nodes/assign", "POST", {
+        body: { userId, nodeId: node.nodeId, assign },
       });
-
-      if (!response.ok) {
-        const errorMsg = `HTTP error! status: ${response.status}`;
-        toast.error(errorMsg);
-        throw new Error(errorMsg);
-      }
-    }
 
     const assignList = selectedNodes
       .filter((node) => !assignedNodes.find((n) => n.nodeId === node.id))

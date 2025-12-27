@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { apiCall } from "@/client";
 
 export const Login = () => {
   const navigate = useNavigate();
@@ -30,20 +31,14 @@ export const Login = () => {
     const username = event.currentTarget.username.value;
     const password = event.currentTarget.password.value;
 
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ username, password }),
-    });
-
-    if (response.ok) {
-      const json = await response.json();
-      localStorage.setItem("authToken", json.token);
+    try {
+      const { token } = await apiCall("/api/auth/login", "POST", {
+        body: { username, password },
+      });
+      localStorage.setItem("authToken", token);
       toast.success("Logged in successfully");
       navigate("/", { replace: true });
-    } else {
+    } catch {
       toast.error("Invalid username or password");
     }
   };

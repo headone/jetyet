@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Rocket, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
-import { toast } from "sonner";
+import { apiCall } from "@/client";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,10 +19,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, navItems }) => {
   const location = useLocation();
 
   const handleLogout = async () => {
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      headers: { Authorization: localStorage.getItem("authToken") ?? "" },
-    });
+    await apiCall("/api/auth/logout", "POST");
     localStorage.removeItem("authToken");
     navigate("/login", { replace: true });
   };

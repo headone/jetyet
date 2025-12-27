@@ -30,10 +30,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Plus } from "lucide-react";
-import { type Node, NODE_TYPES } from "../types";
+import { type Node, NODE_TYPES, type NodeType } from "../types";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { apiCall } from "@/client";
 
 export const Nodes = () => {
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -43,34 +44,12 @@ export const Nodes = () => {
   }, []);
 
   const fetchNodes = async () => {
-    const response = await fetch("/api/nodes", {
-      method: "GET",
-      headers: { Authorization: localStorage.getItem("authToken") ?? "" },
-    });
-
-    if (!response.ok) {
-      const errorMsg = `HTTP error! status: ${response.status}`;
-      toast.error(errorMsg);
-      throw new Error(errorMsg);
-    }
-
-    const data = await response.json();
-    setNodes(data);
+    const response = await apiCall("/api/nodes", "GET");
+    setNodes(response);
   };
 
   const deleteNode = async (id: string) => {
-    const response = await fetch(`/api/nodes/${id}`, {
-      method: "DELETE",
-      headers: {
-        Authorization: localStorage.getItem("authToken") ?? "",
-      },
-    });
-
-    if (!response.ok) {
-      const errorMsg = `HTTP error! status: ${response.status}`;
-      toast.error(errorMsg);
-      throw new Error(errorMsg);
-    }
+    await apiCall("/api/nodes/:id", "DELETE", { params: { id } });
 
     fetchNodes();
   };
@@ -224,20 +203,10 @@ const AddNodeSheet = ({ onSuccess }: { onSuccess?: () => void }) => {
       return;
     }
 
-    const response = await fetch("/api/nodes", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: localStorage.getItem("authToken") ?? "",
-      },
-      body: JSON.stringify({ type, name, host, port }),
+    const _type = type as NodeType;
+    await apiCall("/api/nodes", "POST", {
+      body: { type: _type, name, host, port },
     });
-
-    if (!response.ok) {
-      const errorMsg = `HTTP error! status: ${response.status}`;
-      toast.error(errorMsg);
-      throw new Error(errorMsg);
-    }
 
     toast.success("Node added successfully.");
     setOpen(false);

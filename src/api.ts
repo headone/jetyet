@@ -1,0 +1,68 @@
+import type { User, UserNode, Node, NodeType } from "@/types";
+
+export type AppSchema = {
+  // auth
+  "/api/auth/login": {
+    POST: {
+      body: {
+        username: string;
+        password: string;
+      };
+      response: {
+        token: string;
+      };
+    };
+  };
+  "/api/auth/logout": {
+    POST: {};
+  };
+  // user
+  "/api/users": {
+    GET: {
+      response: (User & { userNodes: UserNode[] })[];
+    };
+    POST: {
+      body: { name: string };
+    };
+  };
+  "/api/users/:id": {
+    GET: {
+      params: { id: string };
+      response: User & { userNodes: UserNode[] };
+    };
+    PUT: {
+      params: { id: string };
+      body: { name: string };
+    };
+    DELETE: {
+      params: { id: string };
+    };
+  };
+  // nodes
+  "/api/nodes": {
+    GET: {
+      response: Node[];
+    };
+    POST: {
+      body: { name: string; host: string; port: string; type: NodeType };
+    };
+  };
+  "/api/nodes/:id": {
+    GET: {
+      params: { id: string };
+      response: UserNode;
+    };
+    PUT: {
+      params: { id: string };
+      body: { name: string; host: string; port: string; type: NodeType };
+    };
+    DELETE: {
+      params: { id: string };
+    };
+  };
+  "/api/nodes/assign": {
+    POST: {
+      body: { userId: string; nodeId: string; assign: boolean };
+    };
+  };
+};
