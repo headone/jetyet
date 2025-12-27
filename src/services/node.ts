@@ -1,6 +1,5 @@
 import { db } from "@/db";
 import type { Node } from "@/types";
-import type { AppRequest } from "./index";
 
 function getAllNodes(): Node[] {
   const query = db.query(

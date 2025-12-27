@@ -1,4 +1,4 @@
-import type { User, UserNode, Node, NodeType } from "@/types";
+import type { UserNode, Node, NodeType, UserWithNodes } from "@/types";
 
 export type AppSchema = {
   // auth
@@ -19,7 +19,7 @@ export type AppSchema = {
   // user
   "/api/users": {
     GET: {
-      response: (User & { userNodes: UserNode[] })[];
+      response: UserWithNodes[];
     };
     POST: {
       body: { name: string };
@@ -28,7 +28,7 @@ export type AppSchema = {
   "/api/users/:id": {
     GET: {
       params: { id: string };
-      response: User & { userNodes: UserNode[] };
+      response: UserWithNodes;
     };
     PUT: {
       params: { id: string };

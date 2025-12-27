@@ -17,6 +17,8 @@ export interface UserSecrets {
   userId: string;
   // hysteria 2
   hysteria2: string;
+  // vless
+  vless: string;
 }
 
 export interface UserWithSecrets extends User {

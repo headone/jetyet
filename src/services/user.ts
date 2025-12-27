@@ -2,6 +2,7 @@ import { randomUUIDv7 } from "bun";
 import { db } from "@/db";
 import {
   type User,
+  type UserWithNodes,
   type UserNode,
   NODE_TYPES,
   type NodeType,
@@ -9,7 +10,7 @@ import {
   type Node,
 } from "@/types";
 
-function getAllUsers(): (User & { userNodes: UserNode[] })[] {
+function getAllUsers(): UserWithNodes[] {
   const usersQuery = db.query(
     "SELECT id, name, sub_key, status, created_at, updated_at FROM users",
   );
