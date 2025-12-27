@@ -7,7 +7,7 @@ export interface User {
   id: string;
   name: string;
   subKey: string;
-  status: 0 | 1;
+  status: 0 | 1; // 0: inactive, 1: active
   createdAt: Date;
   updatedAt: Date;
 }

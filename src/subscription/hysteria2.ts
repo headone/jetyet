@@ -5,7 +5,6 @@ import {
 } from "./index";
 import { type Node, type UserSecrets } from "@/types";
 import { getUserByUserSecrets } from "@/services/user";
-import { YAML } from "bun";
 
 type Params = {
   addr: string;
@@ -19,8 +18,13 @@ class Hysteria2Authenticator implements Authenticator<Params, Result> {
 
   async auth(params: Params): Promise<Result> {
     // simple auth
-    const user = await getUserByUserSecrets(params.auth, this.type);
-    return { ok: !!user, id: user?.name || "" };
+    const user = getUserByUserSecrets(params.auth, this.type);
+
+    if (!user || user.status !== 1) {
+      return { ok: false, id: "" };
+    }
+
+    return { ok: true, id: user.name };
   }
 }
 
