@@ -1,5 +1,3 @@
-import type { AdminConfig } from "../types";
-
 const ADMIN_NAME = Bun.env.ADMIN_NAME;
 const ADMIN_PASSWORD = Bun.env.ADMIN_PASSWORD;
 let adminToken: string | null = null;
@@ -16,16 +14,17 @@ function validateToken(token: string): boolean {
   return token === adminToken;
 }
 
-async function authenticate(req: Request): Promise<Response> {
-  const { username, password } = (await req.json()) as AdminConfig;
-
+function authenticate(
+  username: string,
+  password: string,
+): { token: string } | undefined {
   const userAttempts = loginAttempts[username] || {
     count: 0,
     lockoutUntil: null,
   };
 
   if (userAttempts.lockoutUntil && userAttempts.lockoutUntil > Date.now()) {
-    return new Response(null, { status: 401 });
+    return undefined;
   }
 
   if (username !== ADMIN_NAME || password !== ADMIN_PASSWORD) {
@@ -34,7 +33,7 @@ async function authenticate(req: Request): Promise<Response> {
       userAttempts.lockoutUntil = Date.now() + LOCKOUT_TIME;
     }
     loginAttempts[username] = userAttempts;
-    return new Response(null, { status: 401 });
+    return undefined;
   }
 
   // reset attempts on successful login
@@ -43,12 +42,11 @@ async function authenticate(req: Request): Promise<Response> {
   // generate a new token
   adminToken = crypto.randomUUID();
 
-  return Response.json({ token: adminToken });
+  return { token: adminToken };
 }
 
-function unauthenticate(): Response {
+function unauthenticate(): void {
   adminToken = null;
-  return new Response(null, { status: 204 });
 }
 
 export { validateToken, authenticate, unauthenticate };

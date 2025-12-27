@@ -8,9 +8,8 @@ import {
   type UserSecrets,
   type Node,
 } from "@/types";
-import { AppRequest } from "./index";
 
-function getAllUsers(): Response {
+function getAllUsers(): (User & { userNodes: UserNode[] })[] {
   const usersQuery = db.query(
     "SELECT id, name, sub_key, status, created_at, updated_at FROM users",
   );
@@ -39,11 +38,13 @@ function getAllUsers(): Response {
     userNodes: userNodesMap.get(user.id) || [],
   }));
 
-  return Response.json(users);
+  return users;
 }
 
-async function createUser(request: Request): Promise<Response> {
-  const { name } = await request.json();
+function createUser(name: string): void {
+  if (!name) {
+    throw new Error("Missing user name");
+  }
 
   const transaction = db.transaction((name) => {
     const userQuery = db.query(
@@ -60,24 +61,18 @@ async function createUser(request: Request): Promise<Response> {
     userNodesQuery.run(user.id, randomUUIDv7());
   });
   transaction(name);
-
-  return new Response(null, { status: 201 });
 }
 
-async function deleteUser(request: AppRequest): Promise<Response> {
-  const { id } = request.params;
-
+function deleteUser(id: string): void {
   if (!id) {
-    return new Response("Missing user ID", { status: 400 });
+    throw new Error("Missing user ID");
   }
 
   const userQuery = db.query("DELETE FROM users WHERE id = ?");
   userQuery.run(id);
-
-  return new Response(null, { status: 204 });
 }
 
-async function getUser(id: string): Promise<User | null> {
+function getUser(id: string): User | null {
   const userQuery = db.query(
     "SELECT id, name, sub_key, status, created_at, updated_at FROM users WHERE id = ?",
   );
@@ -85,10 +80,10 @@ async function getUser(id: string): Promise<User | null> {
   return user;
 }
 
-async function getUserByUserSecrets(
+function getUserByUserSecrets(
   secrets: string,
   type: string | NodeType,
-): Promise<User | null> {
+): User | null {
   // check type
   if (!NODE_TYPES.find((nodeType) => nodeType === type)) {
     throw new Error(`Unsupported authenticator type: ${type}`);
@@ -111,9 +106,9 @@ async function getUserByUserSecrets(
   return user;
 }
 
-async function getUserInfoBySubKey(
+function getUserInfoBySubKey(
   subKey: string,
-): Promise<(User & { nodes: Node[]; secrets: UserSecrets }) | null> {
+): (User & { nodes: Node[]; secrets: UserSecrets }) | null {
   const userQuery = db.query(
     "SELECT id, name, sub_key, status, created_at, updated_at FROM users WHERE sub_key = ?",
   );

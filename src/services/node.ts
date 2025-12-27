@@ -2,7 +2,7 @@ import { db } from "@/db";
 import type { Node } from "@/types";
 import type { AppRequest } from "./index";
 
-function getAllNodes(): Response {
+function getAllNodes(): Node[] {
   const query = db.query(
     "SELECT id, name, host, port, type, created_at, updated_at FROM nodes",
   );
@@ -18,44 +18,33 @@ function getAllNodes(): Response {
     updatedAt: new Date(node.updated_at),
   }));
 
-  return Response.json(nodes);
+  return nodes;
 }
 
-async function deleteNode(request: AppRequest): Promise<Response> {
-  const { id } = request.params;
-
+function deleteNode(id: string): void {
   if (!id) {
-    return new Response("Missing node ID", { status: 400 });
+    throw new Error("Missing node ID");
   }
 
   const query = db.query("DELETE FROM nodes WHERE id = ?1");
   query.run(id);
-
-  return new Response(null, { status: 204 });
 }
 
-async function createNode(request: Request): Promise<Response> {
-  const { name, host, port, type } = await request.json();
-
+function createNode(
+  name: string,
+  host: string,
+  port: string,
+  type: string,
+): void {
   const query = db.query(
     "INSERT INTO nodes (name, host, port, type, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, datetime('now', 'localtime'), datetime('now', 'localtime'))",
   );
   query.run(name, host, port, type);
-
-  return new Response(null, { status: 201 });
 }
 
-async function assignNode(request: Request): Promise<Response> {
-  const {
-    userId,
-    nodeId,
-    assign,
-  }: { userId: string; nodeId: string; assign: boolean } = await request.json();
-
+function assignNode(userId: string, nodeId: string, assign: boolean): void {
   if (!userId || !nodeId) {
-    return new Response("Missing user ID, node ID, or assign value", {
-      status: 400,
-    });
+    throw new Error("Missing user ID, node ID, or assign value");
   }
 
   let query;
@@ -70,8 +59,6 @@ async function assignNode(request: Request): Promise<Response> {
   }
 
   query.run(userId, nodeId);
-
-  return new Response(null, { status: 201 });
 }
 
 export { getAllNodes, deleteNode, createNode, assignNode };
