@@ -2,74 +2,82 @@ import { validateToken, authenticate, unauthenticate } from "./auth";
 import { getAllUsers, createUser, deleteUser } from "./user";
 import { getAllNodes, deleteNode, createNode, assignNode } from "./node";
 
-type ReqRoute = {
-  path: string;
+type RouteParams = Record<string, string | undefined>;
+export interface AppRequest extends Request {
+  params: RouteParams;
+}
+
+type Handler = (
+  req: AppRequest,
+  server: Bun.Server<any>,
+) => Response | Promise<Response>;
+
+interface RouteOptions {
+  public?: boolean;
+}
+
+interface Route {
   method: string;
+  pattern: URLPattern;
+  handler: Handler;
+  options: RouteOptions;
+}
+
+const routes: Route[] = [];
+
+const on = (
+  method: string,
+  path: string,
+  handler: Handler,
+  options: RouteOptions = { public: false },
+) => {
+  routes.push({
+    method,
+    pattern: new URLPattern({ pathname: path }),
+    handler,
+    options,
+  });
 };
 
-const apiTableDriven = new Map<
-  ReqRoute,
-  (
-    req: Request,
-    server: Bun.Server<undefined>,
-    isAuthenticated: boolean,
-  ) => Response | Promise<Response>
->([
-  // auth api
-  [{ path: "/api/auth/login", method: "POST" }, (req) => authenticate(req)],
-  [
-    { path: "/api/auth/logout", method: "POST" },
-    (req, _, isAuthenticated) => unauthenticate(isAuthenticated),
-  ],
-  // user api
-  [
-    { path: "/api/users", method: "GET" },
-    (req, _, isAuthenticated) => getAllUsers(isAuthenticated),
-  ],
-  [
-    { path: "/api/users", method: "POST" },
-    (req, _, isAuthenticated) => createUser(req, isAuthenticated),
-  ],
-  [
-    { path: "/api/users", method: "DELETE" },
-    (req, _, isAuthenticated) => deleteUser(req, isAuthenticated),
-  ],
-  // node api
-  [
-    { path: "/api/nodes", method: "GET" },
-    (req, _, isAuthenticated) => getAllNodes(isAuthenticated),
-  ],
-  [
-    { path: "/api/nodes", method: "DELETE" },
-    (req, _, isAuthenticated) => deleteNode(req, isAuthenticated),
-  ],
-  [
-    { path: "/api/nodes", method: "POST" },
-    (req, _, isAuthenticated) => createNode(req, isAuthenticated),
-  ],
-  [
-    { path: "/api/nodes/assign", method: "POST" },
-    (req, _, isAuthenticated) => assignNode(req, isAuthenticated),
-  ],
-]);
+// register route
+// auth api
+on("POST", "/api/auth/login", (req) => authenticate(req), { public: true });
+on("POST", "/api/auth/logout", () => unauthenticate());
+// user api
+on("GET", "/api/users", () => getAllUsers());
+on("POST", "/api/users", (req) => createUser(req));
+on("DELETE", "/api/users/:id", (req) => deleteUser(req));
+// node api
+on("GET", "/api/nodes", () => getAllNodes());
+on("POST", "/api/nodes", (req) => createNode(req));
+on("DELETE", "/api/nodes/:id", (req) => deleteNode(req));
+on("POST", "/api/nodes/assign", (req) => assignNode(req));
 
 export async function routeHandler(
   req: Request,
   server: Bun.Server<undefined>,
 ): Promise<Response> {
-  // get the authorization header
-  const authToken = req.headers.get("Authorization");
-  // check if the token is valid
-  const isAuthenticated = authToken && validateToken(authToken);
+  for (const route of routes) {
+    if (route.method !== req.method) continue;
 
-  // handling routing logic
-  const url = new URL(req.url);
+    const url = new URL(req.url);
+    const match = route.pattern.exec({ pathname: url.pathname });
+    if (match) {
+      if (!route.options.public) {
+        // check if the token is valid
+        const authToken = req.headers.get("Authorization");
+        if (!authToken || !validateToken(authToken)) {
+          return new Response("Unauthorized", { status: 401 });
+        }
+      }
 
-  for (const [route, handler] of apiTableDriven.entries()) {
-    if (route.path === url.pathname && route.method === req.method) {
-      return await handler(req, server, !!isAuthenticated);
+      // inject path params
+      const appReq = req as AppRequest;
+      appReq.params = match.pathname.groups || {};
+
+      return route.handler(appReq, server);
     }
   }
 
-  return new Response(null, { status: 404 });
+  return new Response("Not Found", { status: 404 });
 }

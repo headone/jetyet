@@ -59,13 +59,11 @@ export const Nodes = () => {
   };
 
   const deleteNode = async (id: string) => {
-    const response = await fetch(`/api/nodes`, {
+    const response = await fetch(`/api/nodes/${id}`, {
       method: "DELETE",
       headers: {
-        "Content-Type": "application/json",
         Authorization: localStorage.getItem("authToken") ?? "",
       },
-      body: JSON.stringify({ id }),
     });
 
     if (!response.ok) {

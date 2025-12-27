@@ -8,12 +8,9 @@ import {
   type UserSecrets,
   type Node,
 } from "@/types";
+import { AppRequest } from "./index";
 
-function getAllUsers(isAuthenticated: boolean): Response {
-  if (!isAuthenticated) {
-    return new Response(null, { status: 401 });
-  }
-
+function getAllUsers(): Response {
   const usersQuery = db.query(
     "SELECT id, name, sub_key, status, created_at, updated_at FROM users",
   );
@@ -45,14 +42,7 @@ function getAllUsers(isAuthenticated: boolean): Response {
   return Response.json(users);
 }
 
-async function createUser(
-  request: Request,
-  isAuthenticated: boolean,
-): Promise<Response> {
-  if (!isAuthenticated) {
-    return new Response(null, { status: 401 });
-  }
-
+async function createUser(request: Request): Promise<Response> {
   const { name } = await request.json();
 
   const transaction = db.transaction((name) => {
@@ -74,15 +64,12 @@ async function createUser(
   return new Response(null, { status: 201 });
 }
 
-async function deleteUser(
-  request: Request,
-  isAuthenticated: boolean,
-): Promise<Response> {
-  if (!isAuthenticated) {
-    return new Response(null, { status: 401 });
-  }
+async function deleteUser(request: AppRequest): Promise<Response> {
+  const { id } = request.params;
 
-  const { id } = await request.json();
+  if (!id) {
+    return new Response("Missing user ID", { status: 400 });
+  }
 
   const userQuery = db.query("DELETE FROM users WHERE id = ?");
   userQuery.run(id);

@@ -40,7 +40,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { cn } from "@/lib/utils";
-import { Plus, RefreshCw, Trash2, LinkIcon, Network, Shuffle } from "lucide-react";
+import {
+  Plus,
+  RefreshCw,
+  Trash2,
+  LinkIcon,
+  Network,
+  Shuffle,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { type UserWithNodes, type Node, type UserNode } from "@/types";
 import { toast } from "sonner";
@@ -83,13 +90,11 @@ export const Users = () => {
   };
 
   const deleteUser = async (id: string) => {
-    const response = await fetch(`/api/users`, {
+    const response = await fetch(`/api/users/${id}`, {
       method: "DELETE",
       headers: {
-        "Content-Type": "application/json",
         Authorization: localStorage.getItem("authToken") ?? "",
       },
-      body: JSON.stringify({ id }),
     });
 
     if (!response.ok) {
@@ -117,7 +122,10 @@ export const Users = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const copySubLink = async (subKey: string, type: "clash" | "karing" = "clash") => {
+  const copySubLink = async (
+    subKey: string,
+    type: "clash" | "karing" = "clash",
+  ) => {
     const subLink = `${window.location.origin}/sub/${subKey}?type=${type}&format=yaml`;
     try {
       await navigator.clipboard.writeText(subLink);
@@ -248,7 +256,9 @@ export const Users = () => {
                               <Network className="h-4 w-4 mr-3 text-blue-500" />
                               <div className="flex flex-col gap-0.5">
                                 <span className="font-medium">Clash</span>
-                                <span className="text-xs text-muted-foreground">Standard port range configuration</span>
+                                <span className="text-xs text-muted-foreground">
+                                  Standard port range configuration
+                                </span>
                               </div>
                             </DropdownMenuItem>
                             <DropdownMenuItem
@@ -258,7 +268,9 @@ export const Users = () => {
                               <Shuffle className="h-4 w-4 mr-3 text-green-500" />
                               <div className="flex flex-col gap-0.5">
                                 <span className="font-medium">Karing</span>
-                                <span className="text-xs text-muted-foreground">Random port for each access</span>
+                                <span className="text-xs text-muted-foreground">
+                                  Random port for each access
+                                </span>
                               </div>
                             </DropdownMenuItem>
                           </DropdownMenuContent>

@@ -46,10 +46,7 @@ async function authenticate(req: Request): Promise<Response> {
   return Response.json({ token: adminToken });
 }
 
-function unauthenticate(isAuthenticated: boolean): Response {
-  if (!isAuthenticated) {
-    return new Response(null, { status: 401 });
-  }
+function unauthenticate(): Response {
   adminToken = null;
   return new Response(null, { status: 204 });
 }

@@ -1,11 +1,8 @@
 import { db } from "@/db";
 import type { Node } from "@/types";
+import type { AppRequest } from "./index";
 
-function getAllNodes(isAuthenticated: boolean): Response {
-  if (!isAuthenticated) {
-    return new Response(null, { status: 401 });
-  }
-
+function getAllNodes(): Response {
   const query = db.query(
     "SELECT id, name, host, port, type, created_at, updated_at FROM nodes",
   );
@@ -24,15 +21,8 @@ function getAllNodes(isAuthenticated: boolean): Response {
   return Response.json(nodes);
 }
 
-async function deleteNode(
-  request: Request,
-  isAuthenticated: boolean,
-): Promise<Response> {
-  if (!isAuthenticated) {
-    return new Response(null, { status: 401 });
-  }
-
-  const { id } = await request.json();
+async function deleteNode(request: AppRequest): Promise<Response> {
+  const { id } = request.params;
 
   if (!id) {
     return new Response("Missing node ID", { status: 400 });
@@ -44,14 +34,7 @@ async function deleteNode(
   return new Response(null, { status: 204 });
 }
 
-async function createNode(
-  request: Request,
-  isAuthenticated: boolean,
-): Promise<Response> {
-  if (!isAuthenticated) {
-    return new Response(null, { status: 401 });
-  }
-
+async function createNode(request: Request): Promise<Response> {
   const { name, host, port, type } = await request.json();
 
   const query = db.query(
@@ -62,14 +45,7 @@ async function createNode(
   return new Response(null, { status: 201 });
 }
 
-async function assignNode(
-  request: Request,
-  isAuthenticated: boolean,
-): Promise<Response> {
-  if (!isAuthenticated) {
-    return new Response(null, { status: 401 });
-  }
-
+async function assignNode(request: Request): Promise<Response> {
   const {
     userId,
     nodeId,
