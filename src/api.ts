@@ -62,7 +62,7 @@ export type AppSchema = {
   "/api/nodes/:id": {
     GET: {
       params: { id: string };
-      response: UserNode;
+      response: Node;
     };
     PUT: {
       params: { id: string };

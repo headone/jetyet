@@ -22,6 +22,10 @@ class Hysteria2Authenticator implements Authenticator<Params, Result> {
 
     return { ok: true, id: user.name };
   }
+
+  async assign(node: Node, secrets: UserSecrets): Promise<void> {}
+
+  async deassign(node: Node, secrets: UserSecrets): Promise<void> {}
 }
 
 type ClashConfig = {

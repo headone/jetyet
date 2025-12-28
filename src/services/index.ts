@@ -1,7 +1,14 @@
 import { validateToken, authenticate, unauthenticate } from "./auth";
-import { getAllUsers, createUser, deleteUser } from "./user";
-import { getAllNodes, deleteNode, createNode, assignNode } from "./node";
+import { getAllUsers, createUser, deleteUser, getUserSecrets } from "./user";
+import {
+  getAllNodes,
+  getNode,
+  deleteNode,
+  createNode,
+  assignNode,
+} from "./node";
 import type { AppSchema } from "@/api";
+import { buildAuthenticator } from "@/subscription";
 
 type PathKey = keyof AppSchema;
 type MethodKey<P extends PathKey> = keyof AppSchema[P];
@@ -112,7 +119,12 @@ on("/api/nodes", "POST", async (req) => {
   createNode(name, host, port, type, advanced);
   return new Response(null, { status: 201 });
 });
-on("/api/nodes/:id", "GET", () => new Response(null, { status: 404 }));
+on("/api/nodes/:id", "GET", (req) => {
+  const id = req.params.id;
+  const node = getNode(id);
+  if (!node) return new Response(null, { status: 404 });
+  return node;
+});
 on("/api/nodes/:id", "PUT", () => new Response(null, { status: 404 }));
 on("/api/nodes/:id", "DELETE", (req) => {
   const id = req.params.id;
@@ -124,7 +136,24 @@ on("/api/nodes/assign", "POST", async (req) => {
     nodeId,
     assign,
   }: { userId: string; nodeId: string; assign: boolean } = await req.json();
+  const node = getNode(nodeId);
+  if (!node) return new Response("Node not found", { status: 404 });
+  const secrets = getUserSecrets(userId);
+  if (!secrets) return new Response("User not found", { status: 404 });
+
   assignNode(userId, nodeId, assign);
+  const authenticator = buildAuthenticator(node.type);
+  try {
+    if (assign) {
+      await authenticator.assign(node, secrets);
+    } else {
+      await authenticator.deassign(node, secrets);
+    }
+  } catch {
+    // rollback
+    assignNode(userId, nodeId, !assign);
+    return new Response("Failed to assign node", { status: 500 });
+  }
   return new Response(null, { status: 201 });
 });
 

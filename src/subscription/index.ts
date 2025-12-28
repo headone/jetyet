@@ -1,6 +1,6 @@
 import { type NodeType, type Node, type UserSecrets, type User } from "@/types";
 import { Hysteria2Authenticator, Hysteria2NodeConfigger } from "./hysteria2";
-import { VlessNodeConfigger } from "./vless";
+import { VlessAuthenticator, VlessNodeConfigger } from "./vless";
 import { ClashConfigger } from "./clash";
 import { KaringConfigger } from "./karing";
 
@@ -10,6 +10,8 @@ type ConfigType = (typeof CONFIG_TYPES)[number];
 interface Authenticator<P = any, R = any> {
   type: NodeType;
   auth(params: P): Promise<R>;
+  assign(node: Node, secrets: UserSecrets): Promise<void>;
+  deassign(node: Node, secrets: UserSecrets): Promise<void>;
 }
 
 interface Configger {
@@ -32,6 +34,9 @@ interface NodeConfigger {
 function buildAuthenticator(type: NodeType): Authenticator<any, any> {
   if (type === "hysteria2") {
     return new Hysteria2Authenticator();
+  }
+  if (type === "vless") {
+    return new VlessAuthenticator();
   }
   throw new Error(`Unsupported authenticator type: ${type}`);
 }

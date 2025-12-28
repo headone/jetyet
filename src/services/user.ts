@@ -78,7 +78,15 @@ function getUser(id: string): User | null {
   const userQuery = db.query(
     "SELECT id, name, sub_key, status, created_at, updated_at FROM users WHERE id = ?",
   );
-  const user = userQuery.get(id) as User | null;
+  const usersRaw = userQuery.get() as any;
+  const user = {
+    id: usersRaw.id,
+    name: usersRaw.name,
+    subKey: usersRaw.sub_key,
+    status: usersRaw.status,
+    createdAt: new Date(usersRaw.created_at),
+    updatedAt: new Date(usersRaw.updated_at),
+  };
   return user;
 }
 
@@ -130,6 +138,15 @@ function getUserInfoBySubKey(
   return { ...user, nodes, secrets };
 }
 
+function getUserSecrets(userId: string): UserSecrets | null {
+  const secretsQuery = db.query(
+    "SELECT user_id, hysteria2, vless FROM user_secrets WHERE user_id = ?",
+  );
+  const secrets = secretsQuery.get(userId) as UserSecrets | null;
+
+  return secrets;
+}
+
 export {
   getAllUsers,
   createUser,
@@ -137,4 +154,5 @@ export {
   getUser,
   getUserByUserSecrets,
   getUserInfoBySubKey,
+  getUserSecrets,
 };

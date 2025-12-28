@@ -21,6 +21,30 @@ function getAllNodes(): Node[] {
   return nodes;
 }
 
+function getNode(id: string): Node | null {
+  const query = db.query(
+    "SELECT id, name, host, port, type, advanced, created_at, updated_at FROM nodes WHERE id = ?1",
+  );
+  const nodeRaw = query.get(id) as any;
+
+  if (!nodeRaw) {
+    return null;
+  }
+
+  const node: Node = {
+    id: nodeRaw.id,
+    name: nodeRaw.name,
+    host: nodeRaw.host,
+    port: nodeRaw.port,
+    type: nodeRaw.type,
+    advanced: JSON.parse(nodeRaw.advanced),
+    createdAt: new Date(nodeRaw.created_at),
+    updatedAt: new Date(nodeRaw.updated_at),
+  };
+
+  return node;
+}
+
 function deleteNode(id: string): void {
   if (!id) {
     throw new Error("Missing node ID");
@@ -82,4 +106,11 @@ function getAllNodesByUserId(userId: string): Node[] {
   return nodes;
 }
 
-export { getAllNodes, deleteNode, createNode, assignNode, getAllNodesByUserId };
+export {
+  getAllNodes,
+  getNode,
+  deleteNode,
+  createNode,
+  assignNode,
+  getAllNodesByUserId,
+};

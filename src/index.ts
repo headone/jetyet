@@ -53,7 +53,7 @@ const server = serve({
       const authenticator = buildAuthenticator(type as NodeType);
       const result = await authenticator.auth(data);
 
-      return Response.json(result);
+      return Response.json(result || {});
     },
   },
 
