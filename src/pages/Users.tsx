@@ -66,20 +66,18 @@ import { useEffect, useState } from "react";
 import { type UserWithNodes, type Node, type UserNode } from "@/types";
 import { toast } from "sonner";
 import copy from "copy-to-clipboard";
-import { apiCall } from "@/client";
+import { apiCall, apiCallSWR } from "@/client";
 
 export const Users = () => {
   const [users, setUsers] = useState<UserWithNodes[]>([]);
   const [nodes, setNodes] = useState<Node[]>([]);
 
   const fetchUsers = async () => {
-    const response = await apiCall("/api/users", "GET");
-    setUsers(response);
+    await apiCallSWR("/api/users", "GET", undefined, setUsers);
   };
 
   const fetchNodes = async () => {
-    const response = await apiCall("/api/nodes", "GET");
-    setNodes(response);
+    await apiCallSWR("/api/nodes", "GET", undefined, setNodes);
   };
 
   const deleteUser = async (id: string) => {
@@ -89,11 +87,7 @@ export const Users = () => {
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      await fetchNodes();
-      await fetchUsers();
-    };
-    fetchData();
+    Promise.all([fetchUsers(), fetchNodes()]);
   }, []);
 
   const formatBytes = (bytes: number) => {

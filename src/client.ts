@@ -61,3 +61,36 @@ export async function apiCall<P extends Paths, M extends Methods<P>>(
     return undefined as any;
   }
 }
+
+const SWR_CACHE = new Map<string, { data: any; requestId: number }>();
+let requestIdCounter = 0;
+
+export async function apiCallSWR<P extends Paths, M extends Methods<P>>(
+  path: P,
+  method: M,
+  options: RequestOptions<P, M> | undefined,
+  handler: (
+    data: AppSchema[P][M] extends { response: infer R } ? R : void,
+  ) => void,
+): Promise<void> {
+  const cacheKey = `${path}-${method as string}-${JSON.stringify(options || {})}`;
+  const currentRequestId = ++requestIdCounter;
+
+  const cachedEntry = SWR_CACHE.get(cacheKey);
+  if (cachedEntry && !!cachedEntry.data) {
+    handler(cachedEntry.data);
+    cachedEntry.requestId = currentRequestId;
+  } else {
+    SWR_CACHE.set(cacheKey, { data: null, requestId: currentRequestId });
+  }
+
+  const newData = await apiCall(path, method, options);
+
+  const latestEntry = SWR_CACHE.get(cacheKey);
+  if (latestEntry && latestEntry.requestId !== currentRequestId) {
+    return;
+  }
+
+  SWR_CACHE.set(cacheKey, { data: newData, requestId: currentRequestId });
+  handler(newData);
+}

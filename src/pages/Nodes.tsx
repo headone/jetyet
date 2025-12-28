@@ -47,8 +47,7 @@ import {
 } from "@/types";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { apiCall } from "@/client";
+import { apiCall, apiCallSWR } from "@/client";
 
 export const Nodes = () => {
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -58,8 +57,7 @@ export const Nodes = () => {
   }, []);
 
   const fetchNodes = async () => {
-    const response = await apiCall("/api/nodes", "GET");
-    setNodes(response);
+    await apiCallSWR("/api/nodes", "GET", undefined, setNodes);
   };
 
   const deleteNode = async (id: string) => {
