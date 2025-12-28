@@ -1,8 +1,13 @@
 import { serve } from "bun";
 import index from "./index.html";
 import { routeHandler } from "./services";
-import { buildAuthenticator, buildConfigger } from "./subscription";
+import {
+  buildAuthenticator,
+  buildConfigger,
+  type ConfigType,
+} from "./subscription";
 import { getUserInfoBySubKey } from "./services/user";
+import { type NodeType } from "@/types";
 
 const server = serve({
   hostname: "0.0.0.0",
@@ -20,13 +25,13 @@ const server = serve({
         return new Response(null, { status: 400 });
       }
 
-      const userInfo = await getUserInfoBySubKey(subKey);
+      const userInfo = getUserInfoBySubKey(subKey);
       if (!userInfo) {
         return new Response(null, { status: 404 });
       }
 
       const configger = buildConfigger(
-        configType,
+        configType as ConfigType,
         userInfo.nodes,
         userInfo.secrets,
       );
@@ -45,7 +50,7 @@ const server = serve({
       const type = req.params.type;
       const data = await req.json();
 
-      const authenticator = buildAuthenticator(type);
+      const authenticator = buildAuthenticator(type as NodeType);
       const result = await authenticator.auth(data);
 
       return Response.json(result);

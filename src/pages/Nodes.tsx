@@ -217,7 +217,6 @@ const AddNodeSheet = ({ onSuccess }: { onSuccess?: () => void }) => {
     } else {
       throw new Error("Invalid node type");
     }
-    console.log({ type, name, host, port, advanced });
 
     setLoading(true);
     try {

@@ -1,9 +1,5 @@
-import {
-  type Authenticator,
-  type ConfigType,
-  type NodeConfigger,
-} from "./index";
-import { type Node, type UserSecrets } from "@/types";
+import { type Authenticator, type ConfigType, type NodeConfigger } from ".";
+import { type Node, type NodeType, type UserSecrets } from "@/types";
 import { getUserByUserSecrets } from "@/services/user";
 
 type Params = {
@@ -14,7 +10,7 @@ type Params = {
 type Result = { ok: boolean; id: string };
 
 class Hysteria2Authenticator implements Authenticator<Params, Result> {
-  type = "hysteria2";
+  type: NodeType = "hysteria2";
 
   async auth(params: Params): Promise<Result> {
     // simple auth
@@ -53,11 +49,12 @@ type KaringConfig = {
 };
 
 class Hysteria2NodeConfigger implements NodeConfigger {
+  type: NodeType = "hysteria2";
   async create(
     node: Node,
     secrets: UserSecrets,
     configType: ConfigType,
-  ): Promise<any> {
+  ): Promise<ClashConfig | KaringConfig> {
     if (configType === "clash") {
       const config: ClashConfig = {
         name: node.name,

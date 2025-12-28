@@ -62,4 +62,24 @@ function assignNode(userId: string, nodeId: string, assign: boolean): void {
   query.run(userId, nodeId);
 }
 
-export { getAllNodes, deleteNode, createNode, assignNode };
+function getAllNodesByUserId(userId: string): Node[] {
+  const query = db.query(
+    "SELECT n.id, n.name, n.host, n.port, n.type, n.advanced, n.created_at, n.updated_at FROM nodes AS n JOIN user_nodes AS un ON n.id = un.node_id WHERE un.user_id = ?",
+  );
+  const nodesRaw = query.all(userId) as any[];
+
+  const nodes: Node[] = nodesRaw.map((node) => ({
+    id: node.id,
+    name: node.name,
+    host: node.host,
+    port: node.port,
+    type: node.type,
+    advanced: JSON.parse(node.advanced),
+    createdAt: new Date(node.created_at),
+    updatedAt: new Date(node.updated_at),
+  }));
+
+  return nodes;
+}
+
+export { getAllNodes, deleteNode, createNode, assignNode, getAllNodesByUserId };

@@ -9,6 +9,7 @@ import {
   type UserSecrets,
   type Node,
 } from "@/types";
+import { getAllNodesByUserId } from "@/services/node";
 
 function getAllUsers(): UserWithNodes[] {
   const usersQuery = db.query(
@@ -57,9 +58,9 @@ function createUser(name: string): void {
     const user = userSelectQuery.get(name) as { id: string };
 
     const userNodesQuery = db.query(
-      "INSERT INTO user_secrets (user_id, hysteria2) VALUES (?, ?)",
+      "INSERT INTO user_secrets (user_id, hysteria2, vless) VALUES (?, ?, ?)",
     );
-    userNodesQuery.run(user.id, randomUUIDv7());
+    userNodesQuery.run(user.id, randomUUIDv7(), randomUUIDv7());
   });
   transaction(name);
 }
@@ -119,13 +120,10 @@ function getUserInfoBySubKey(
     return null;
   }
 
-  const nodesQuery = db.query(
-    "SELECT n.id, n.name, n.host, n.port, n.type, n.created_at, n.updated_at FROM nodes AS n JOIN user_nodes AS un ON n.id = un.node_id WHERE un.user_id = ?",
-  );
-  const nodes = nodesQuery.all(user.id) as Node[];
+  const nodes = getAllNodesByUserId(user.id);
 
   const secretsQuery = db.query(
-    "SELECT user_id, hysteria2 FROM user_secrets WHERE user_id = ?",
+    "SELECT user_id, hysteria2, vless FROM user_secrets WHERE user_id = ?",
   );
   const secrets = secretsQuery.get(user.id) as UserSecrets;
 

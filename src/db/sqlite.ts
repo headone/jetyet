@@ -32,6 +32,7 @@ class SQLiteDB implements DB {
       CREATE TABLE IF NOT EXISTS user_secrets (
         user_id TEXT PRIMARY KEY NOT NULL,
         hysteria2 TEXT NOT NULL,
+        vless TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
       );
     `;
