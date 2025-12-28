@@ -108,8 +108,8 @@ on("/api/users/:id", "DELETE", (req) => {
 // node api
 on("/api/nodes", "GET", getAllNodes);
 on("/api/nodes", "POST", async (req) => {
-  const { name, host, port, type } = await req.json();
-  createNode(name, host, port, type);
+  const { name, host, port, type, advanced } = await req.json();
+  createNode(name, host, port, type, advanced);
   return new Response(null, { status: 201 });
 });
 on("/api/nodes/:id", "GET", () => new Response(null, { status: 404 }));

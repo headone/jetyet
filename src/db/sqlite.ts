@@ -44,6 +44,7 @@ class SQLiteDB implements DB {
         host TEXT NOT NULL,
         port TEXT NOT NULL,
         type TEXT NOT NULL,
+        advanced TEXT NOT NULL,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
       );

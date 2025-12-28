@@ -1,11 +1,14 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import {
   Sheet,
-  SheetContent,
+  SheetClose,
+  SheetDescription,
   SheetFooter,
   SheetHeader,
+  SheetPanel,
+  SheetPopup,
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
@@ -32,13 +35,24 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogPopup,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Form } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import {
   Plus,
@@ -113,7 +127,7 @@ export const Users = () => {
             Manage access and traffic limits
           </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center">
           <AddUserSheet onSuccess={fetchUsers} />
         </div>
       </div>
@@ -192,14 +206,7 @@ export const Users = () => {
                         assignedNodes={user.userNodes}
                         onSuccess={fetchUsers}
                       >
-                        <div
-                          className={buttonVariants({
-                            variant: "ghost",
-                            size: "sm",
-                          })}
-                        >
-                          {user.userNodes.length} assigned
-                        </div>
+                        {user.userNodes.length} assigned
                       </AssignDialog>
                     </td>
                     <td className="p-4 align-middle text-right">
@@ -213,7 +220,10 @@ export const Users = () => {
                           <RefreshCw className="h-4 w-4" />
                         </Button>*/}
                         <DropdownMenu>
-                          <DropdownMenuTrigger className="inline-flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-all duration-200 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50">
+                          <DropdownMenuTrigger
+                            render={<Button variant="ghost" />}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-all duration-200 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+                          >
                             <LinkIcon className="h-4 w-4" />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent>
@@ -243,50 +253,41 @@ export const Users = () => {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                        <Dialog>
-                          <DialogTrigger>
-                            <div
-                              className={cn(
-                                buttonVariants({
-                                  variant: "ghost",
-                                  size: "sm",
-                                }),
-                                "h-8 w-8 p-0 text-red-600 hover:text-red-700",
-                              )}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </div>
-                          </DialogTrigger>
-                          <DialogPopup>
-                            <DialogHeader>
-                              <DialogTitle>Delete User</DialogTitle>
-                              <DialogDescription>
-                                Are you sure you want to delete this user?
-                              </DialogDescription>
-                            </DialogHeader>
-                            <DialogFooter>
-                              <DialogClose className="space-x-2">
-                                <div
-                                  className={buttonVariants({
-                                    variant: "ghost",
-                                    size: "sm",
-                                  })}
-                                >
-                                  Cancel
-                                </div>
-                                <div
-                                  className={buttonVariants({
-                                    variant: "destructive-outline",
-                                    size: "sm",
-                                  })}
-                                  onClick={() => deleteUser(user.id)}
-                                >
-                                  Continue
-                                </div>
-                              </DialogClose>
-                            </DialogFooter>
-                          </DialogPopup>
-                        </Dialog>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger
+                            render={<Button variant="ghost" />}
+                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </AlertDialogTrigger>
+                          <AlertDialogPopup>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>
+                                Are you absolutely sure?
+                              </AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will
+                                permanently delete your USER and remove your
+                                data from our servers.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter variant="bare">
+                              <AlertDialogClose
+                                render={<Button variant="ghost" />}
+                              >
+                                Cancel
+                              </AlertDialogClose>
+                              <AlertDialogClose
+                                render={<Button variant="destructive" />}
+                                onClick={() => deleteUser(user.id)}
+                              >
+                                Delete User
+                              </AlertDialogClose>
+                            </AlertDialogFooter>
+                          </AlertDialogPopup>
+                        </AlertDialog>
+
                         {/*<Button
                           size="sm"
                           variant="ghost"
@@ -319,51 +320,52 @@ export const Users = () => {
 };
 
 const AddUserSheet = ({ onSuccess }: { onSuccess?: () => void }) => {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const submitHandler = async () => {
-    if (!name) {
-      toast.error("Please fill all fields");
-      return;
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    const formData = new FormData(e.currentTarget);
+    const name = formData.get("name") as string;
+
+    setLoading(true);
+    try {
+      await apiCall("/api/users", "POST", { body: { name } });
+      toast.success("User added successfully.");
+      onSuccess?.();
+    } catch (error) {
+      toast.error("Failed to add user");
+    } finally {
+      setLoading(false);
     }
-
-    await apiCall("/api/users", "POST", { body: { name } });
-
-    toast.success("User added successfully.");
-    setOpen(false);
-    onSuccess?.();
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button size="sm" variant="outline">
-          <Plus className="h-3.5 w-3.5 mr-2" />
-          Add User
-        </Button>
+    <Sheet>
+      <SheetTrigger render={<Button variant="outline" />}>
+        <Plus className="h-3.5 w-3.5 mr-2" />
+        Add
       </SheetTrigger>
-      <SheetContent side="right" className="p-4">
-        <SheetHeader>
-          <SheetTitle>Add User</SheetTitle>
-        </SheetHeader>
-        <FieldGroup>
-          <Field>
-            <FieldLabel htmlFor="username">Name</FieldLabel>
-            <Input
-              id="username"
-              placeholder="User Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </Field>
-        </FieldGroup>
-        <SheetFooter>
-          <Button size="sm" onClick={submitHandler}>
-            Add
-          </Button>
-        </SheetFooter>
-      </SheetContent>
+      <SheetPopup inset>
+        <Form className="h-full gap-0" onSubmit={handleSubmit}>
+          <SheetHeader>
+            <SheetTitle>Add User</SheetTitle>
+            <SheetDescription>Add a new user to the system.</SheetDescription>
+          </SheetHeader>
+          <SheetPanel className="grid gap-4">
+            <Field name="name">
+              <FieldLabel>Name</FieldLabel>
+              <Input type="text" required />
+            </Field>
+          </SheetPanel>
+          <SheetFooter>
+            <SheetClose render={<Button variant="ghost" />}>Cancel</SheetClose>
+            <SheetClose render={<Button disabled={loading} type="submit" />}>
+              Save
+            </SheetClose>
+          </SheetFooter>
+        </Form>
+      </SheetPopup>
     </Sheet>
   );
 };
@@ -419,7 +421,9 @@ const AssignDialog = ({
 
   return (
     <Dialog>
-      <DialogTrigger>{children}</DialogTrigger>
+      <DialogTrigger render={<Button variant="ghost" />}>
+        {children}
+      </DialogTrigger>
       <DialogPopup>
         <DialogHeader>
           <DialogTitle>Assign Nodes</DialogTitle>
@@ -465,17 +469,10 @@ const AssignDialog = ({
             </ComboboxPopup>
           </Combobox>
         </DialogPanel>
-        <DialogFooter>
-          <DialogClose className="space-x-2">
-            <div className={buttonVariants({ variant: "ghost", size: "sm" })}>
-              Cancel
-            </div>
-            <div
-              className={buttonVariants({ size: "sm" })}
-              onClick={assignHandler}
-            >
-              Save
-            </div>
+        <DialogFooter className="space-x-2">
+          <DialogClose render={<Button variant="ghost" />}>Cancel</DialogClose>
+          <DialogClose render={<Button />} onClick={assignHandler}>
+            Save
           </DialogClose>
         </DialogFooter>
       </DialogPopup>

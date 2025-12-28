@@ -1,4 +1,10 @@
-import type { UserNode, Node, NodeType, UserWithNodes } from "@/types";
+import type {
+  UserNode,
+  Node,
+  NodeType,
+  NodeAdvancedSchema,
+  UserWithNodes,
+} from "@/types";
 
 export type AppSchema = {
   // auth
@@ -44,7 +50,13 @@ export type AppSchema = {
       response: Node[];
     };
     POST: {
-      body: { name: string; host: string; port: string; type: NodeType };
+      body: {
+        name: string;
+        host: string;
+        port: string;
+        type: NodeType;
+        advanced: NodeAdvancedSchema[NodeType];
+      };
     };
   };
   "/api/nodes/:id": {

@@ -25,8 +25,7 @@ export interface UserWithSecrets extends User {
   userSecrets: UserSecrets[];
 }
 
-export const NODE_TYPES = ["hysteria2"] as const;
-
+export const NODE_TYPES = ["hysteria2", "vless"] as const;
 export type NodeType = (typeof NODE_TYPES)[number];
 
 export interface Node {
@@ -35,9 +34,36 @@ export interface Node {
   host: string;
   port: string;
   type: NodeType;
+  advanced: NodeAdvancedSchema[NodeType];
   createdAt: Date;
   updatedAt: Date;
 }
+
+export const VLESS_FLOW_TYPES = ["xtls-rprx-vision"] as const;
+export type VlessFlowType = (typeof VLESS_FLOW_TYPES)[number];
+
+export const CLIENT_FINGERPRINT_TYPES = [
+  "chrome",
+  "firefox",
+  "edge",
+  "safari",
+] as const;
+export type ClientFingerprintType = (typeof CLIENT_FINGERPRINT_TYPES)[number];
+
+export type NodeAdvancedSchema = {
+  hysteria2: {};
+  vless: {
+    tls: boolean;
+    udp: boolean;
+    flow: VlessFlowType;
+    servername: string;
+    "reality-opts": {
+      "public-key": string;
+      "short-id": string | undefined;
+    };
+    "client-fingerprint": ClientFingerprintType;
+  };
+};
 
 export interface UserNode {
   userId: string;

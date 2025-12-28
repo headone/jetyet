@@ -1,9 +1,9 @@
 import { db } from "@/db";
-import type { Node } from "@/types";
+import type { Node, NodeAdvancedSchema, NodeType } from "@/types";
 
 function getAllNodes(): Node[] {
   const query = db.query(
-    "SELECT id, name, host, port, type, created_at, updated_at FROM nodes",
+    "SELECT id, name, host, port, type, advanced, created_at, updated_at FROM nodes",
   );
   const nodesRaw = query.all() as any[];
 
@@ -13,6 +13,7 @@ function getAllNodes(): Node[] {
     host: node.host,
     port: node.port,
     type: node.type,
+    advanced: JSON.parse(node.advanced),
     createdAt: new Date(node.created_at),
     updatedAt: new Date(node.updated_at),
   }));
@@ -33,12 +34,13 @@ function createNode(
   name: string,
   host: string,
   port: string,
-  type: string,
+  type: NodeType,
+  advanced: NodeAdvancedSchema[NodeType],
 ): void {
   const query = db.query(
-    "INSERT INTO nodes (name, host, port, type, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, datetime('now', 'localtime'), datetime('now', 'localtime'))",
+    "INSERT INTO nodes (name, host, port, type, advanced, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, datetime('now', 'localtime'), datetime('now', 'localtime'))",
   );
-  query.run(name, host, port, type);
+  query.run(name, host, port, type as string, JSON.stringify(advanced));
 }
 
 function assignNode(userId: string, nodeId: string, assign: boolean): void {
