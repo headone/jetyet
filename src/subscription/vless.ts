@@ -113,7 +113,7 @@ class VlessNodeConfigger implements NodeConfigger {
         `auto:${config.uuid}@${config.server}:${config.port}`,
       ).toString("base64");
 
-      return `${this.type}://${serverInfo}?tls=${config.tls}&peer=${config.peer}&xtls=${config.xtls}&pbk=${config.pbk}&sid=${config.sid}&remarks=${encodeURIComponent(config.remarks)}`;
+      return `${this.type}://${serverInfo}?tls=${config.tls}&peer=${config.peer}&xtls=${config.xtls}&pbk=${config.pbk}&sid=${config.sid || ""}&remarks=${encodeURIComponent(config.remarks)}`;
     }
 
     throw new Error(`Unsupported config type: ${configType}`);
