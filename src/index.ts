@@ -19,9 +19,8 @@ const server = serve({
     "/sub/:subKey": async (req) => {
       const subKey = req.params.subKey;
       const configType = new URL(req.url).searchParams.get("type");
-      const format = new URL(req.url).searchParams.get("format");
 
-      if (!configType || !format) {
+      if (!configType) {
         return new Response(null, { status: 400 });
       }
 
@@ -32,17 +31,13 @@ const server = serve({
 
       const configger = buildConfigger(
         configType as ConfigType,
+        userInfo,
         userInfo.nodes,
         userInfo.secrets,
       );
 
-      const headers = configger.headers(userInfo);
-      let configStr;
-      if (format === "yaml") {
-        configStr = await configger.toYAML();
-      } else {
-        return new Response(null, { status: 400 });
-      }
+      const headers = configger.headers();
+      const configStr = await configger.stringifySubscription();
 
       return new Response(configStr, { headers });
     },

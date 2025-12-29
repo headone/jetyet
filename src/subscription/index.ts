@@ -1,10 +1,11 @@
 import { type NodeType, type Node, type UserSecrets, type User } from "@/types";
-import { Hysteria2Authenticator, Hysteria2NodeConfigger } from "./hysteria2";
-import { VlessAuthenticator, VlessNodeConfigger } from "./vless";
+import { Hysteria2Authenticator, hysteria2NodeConfigger } from "./hysteria2";
+import { VlessAuthenticator, vlessNodeConfigger } from "./vless";
 import { ClashConfigger } from "./clash";
 import { KaringConfigger } from "./karing";
+import { ShadowrocketConfigger } from "./shadowrocket";
 
-const CONFIG_TYPES = ["clash", "karing"] as const;
+const CONFIG_TYPES = ["clash", "karing", "shadowrocket"] as const;
 type ConfigType = (typeof CONFIG_TYPES)[number];
 
 interface Authenticator<P = any, R = any> {
@@ -16,19 +17,17 @@ interface Authenticator<P = any, R = any> {
 
 interface Configger {
   type: ConfigType;
+  user: User;
   nodes: Node[];
   secrets: UserSecrets;
-  headers(user: User): Record<string, string>;
-  toYAML(): Promise<string>;
+  headers(): Record<string, string>;
+  stringifySubscription(): Promise<string>;
 }
 
 interface NodeConfigger {
   type: NodeType;
-  create(
-    node: Node,
-    secrets: UserSecrets,
-    configType: ConfigType,
-  ): Promise<any>;
+  toModel(node: Node, secrets: UserSecrets, configType: ConfigType): any;
+  toURI(node: Node, secrets: UserSecrets, configType: ConfigType): string;
 }
 
 function buildAuthenticator(type: NodeType): Authenticator<any, any> {
@@ -43,24 +42,28 @@ function buildAuthenticator(type: NodeType): Authenticator<any, any> {
 
 function buildConfigger(
   type: ConfigType,
+  user: User,
   nodes: Node[],
   secrets: UserSecrets,
 ): Configger {
   if (type === "clash") {
-    return new ClashConfigger(nodes, secrets);
+    return new ClashConfigger(user, nodes, secrets);
   }
   if (type === "karing") {
-    return new KaringConfigger(nodes, secrets);
+    return new KaringConfigger(user, nodes, secrets);
+  }
+  if (type === "shadowrocket") {
+    return new ShadowrocketConfigger(user, nodes, secrets);
   }
   throw new Error(`Unsupported config type: ${type}`);
 }
 
 function buildNodeConfigger(type: NodeType): NodeConfigger {
   if (type === "hysteria2") {
-    return new Hysteria2NodeConfigger();
+    return hysteria2NodeConfigger;
   }
   if (type === "vless") {
-    return new VlessNodeConfigger();
+    return vlessNodeConfigger;
   }
   throw new Error(`Unsupported node config type: ${type}`);
 }

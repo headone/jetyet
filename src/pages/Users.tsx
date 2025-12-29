@@ -61,6 +61,7 @@ import {
   LinkIcon,
   Network,
   Shuffle,
+  Rocket,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type UserWithNodes, type Node, type UserNode } from "@/types";
@@ -100,16 +101,15 @@ export const Users = () => {
 
   const copySubLink = async (
     subKey: string,
-    type: "clash" | "karing" = "clash",
+    type: "clash" | "karing" | "shadowrocket",
   ) => {
-    const subLink = `${window.location.origin}/sub/${subKey}?type=${type}&format=yaml`;
+    const subLink = `${window.location.origin}/sub/${subKey}?type=${type}`;
     try {
       await navigator.clipboard.writeText(subLink);
-    } catch (_) {
+    } catch {
       copy(subLink);
     }
-    const typeName = type === "clash" ? "Clash" : "Karing";
-    toast.success(`${typeName} subscription link copied to clipboard`);
+    toast.success(`${type} subscription link copied to clipboard`);
   };
 
   return (
@@ -242,6 +242,22 @@ export const Users = () => {
                                 <span className="font-medium">Karing</span>
                                 <span className="text-xs text-muted-foreground">
                                   Random port for each access
+                                </span>
+                              </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() =>
+                                copySubLink(user.subKey, "shadowrocket")
+                              }
+                              className="cursor-pointer py-3"
+                            >
+                              <Rocket className="h-4 w-4 mr-3 text-violet-500" />
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-medium">
+                                  Shadowrocket
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  Base64 text data
                                 </span>
                               </div>
                             </DropdownMenuItem>

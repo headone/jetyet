@@ -4,16 +4,18 @@ import { YAML } from "bun";
 
 export class ClashConfigger implements Configger {
   type: ConfigType = "clash";
+  user: User;
   nodes: Node[];
   secrets: UserSecrets;
 
-  constructor(nodes: Node[], secrets: UserSecrets) {
+  constructor(user: User, nodes: Node[], secrets: UserSecrets) {
+    this.user = user;
     this.nodes = nodes;
     this.secrets = secrets;
   }
 
-  headers(user: User): Record<string, string> {
-    const filename = encodeURIComponent(`🛫 jetyet ${user.name}`);
+  headers(): Record<string, string> {
+    const filename = encodeURIComponent(`🛫 jetyet ${this.user.name}`);
 
     return {
       "content-disposition": `attachment; filename*=UTF-8''${filename}`,
@@ -23,24 +25,17 @@ export class ClashConfigger implements Configger {
     };
   }
 
-  async toYAML(): Promise<string> {
+  async stringifySubscription(): Promise<string> {
     const baseConfig = YAML.parse(defaultClashBaseConfig) as any;
 
-    const configs = await Promise.all(
-      this.nodes.map(async (node) => {
-        const nodeConfigger = buildNodeConfigger(node.type);
-        const config = await nodeConfigger.create(
-          node,
-          this.secrets,
-          this.type,
-        );
-        return config;
-      }),
-    );
-    const filteredConfigs = configs.filter((config) => config !== undefined);
+    const configs = this.nodes
+      .map((node) =>
+        buildNodeConfigger(node.type).toModel(node, this.secrets, this.type),
+      )
+      .filter((config) => config !== undefined);
 
     // inject
-    baseConfig.proxies = filteredConfigs;
+    baseConfig.proxies = configs;
     const allProxies = this.nodes.map((node) => node.name);
     baseConfig["proxy-groups"][0].proxies.push(...allProxies);
     baseConfig["proxy-groups"][1].proxies = allProxies;
