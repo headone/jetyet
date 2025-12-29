@@ -149,10 +149,13 @@ on("/api/nodes/assign", "POST", async (req) => {
     } else {
       await authenticator.deassign(node, secrets);
     }
-  } catch {
+  } catch (e) {
     // rollback
     assignNode(userId, nodeId, !assign);
-    return new Response("Failed to assign node", { status: 500 });
+    return new Response(
+      `Failed to ${assign ? "assign" : "deassign"} node: ${e}`,
+      { status: 500 },
+    );
   }
   return new Response(null, { status: 201 });
 });
