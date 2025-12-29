@@ -40,6 +40,7 @@ export async function apiCall<P extends Paths, M extends Methods<P>>(
 
   if (res.status === 401) {
     localStorage.removeItem("authToken");
+    window.location.href = "/";
   }
 
   if (!res.ok) {
