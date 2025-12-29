@@ -1,4 +1,4 @@
-import { RefreshCw, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -230,7 +230,7 @@ const AddNodeSheet = ({ onSuccess }: { onSuccess?: () => void }) => {
 
   return (
     <Sheet>
-      <SheetTrigger render={<Button variant="outline" />}>
+      <SheetTrigger render={<Button />}>
         <Plus className="h-3.5 w-3.5 mr-2" />
         Add
       </SheetTrigger>

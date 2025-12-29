@@ -159,6 +159,23 @@ on("/api/nodes/assign", "POST", async (req) => {
   }
   return new Response(null, { status: 201 });
 });
+on("/api/nodes/reassign", "POST", async (req) => {
+  const reassignments: { userId: string; nodeId: string }[] = await req.json();
+  for (const { userId, nodeId } of reassignments) {
+    const node = getNode(nodeId);
+    if (!node) continue;
+    const secrets = getUserSecrets(userId);
+    if (!secrets) continue;
+
+    const authenticator = buildAuthenticator(node.type);
+    try {
+      await authenticator.assign(node, secrets);
+    } catch (e) {
+      console.error(`Failed to assign node ${nodeId} to user ${userId}: ${e}`);
+    }
+  }
+  return new Response(null, { status: 201 });
+});
 
 export async function routeHandler(
   req: Request,

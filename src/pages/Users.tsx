@@ -56,7 +56,7 @@ import { Form } from "@/components/ui/form";
 import { cn } from "@/lib/utils";
 import {
   Plus,
-  RefreshCw,
+  LucideRotate3D,
   Trash2,
   LinkIcon,
   Network,
@@ -68,6 +68,7 @@ import { type UserWithNodes, type Node, type UserNode } from "@/types";
 import { toast } from "sonner";
 import copy from "copy-to-clipboard";
 import { apiCall, apiCallSWR } from "@/client";
+import { Spinner } from "@/components/ui/spinner";
 
 export const Users = () => {
   const [users, setUsers] = useState<UserWithNodes[]>([]);
@@ -112,6 +113,18 @@ export const Users = () => {
     toast.success(`${type} subscription link copied to clipboard`);
   };
 
+  const handleReassign = async () => {
+    await apiCall("/api/nodes/reassign", "POST", {
+      // Reassign all nodes
+      body: users.flatMap((user) =>
+        user.userNodes.map((node) => ({
+          userId: user.id,
+          nodeId: node.nodeId,
+        })),
+      ),
+    });
+  };
+
   return (
     <div className="flex-1 space-y-4">
       <div className="flex items-center justify-between">
@@ -121,7 +134,8 @@ export const Users = () => {
             Manage access and traffic limits
           </p>
         </div>
-        <div className="flex items-center">
+        <div className="flex gap-2">
+          <ReassignButton onReassign={handleReassign} />
           <AddUserSheet onSuccess={fetchUsers} />
         </div>
       </div>
@@ -352,7 +366,7 @@ const AddUserSheet = ({ onSuccess }: { onSuccess?: () => void }) => {
 
   return (
     <Sheet>
-      <SheetTrigger render={<Button variant="outline" />}>
+      <SheetTrigger render={<Button />}>
         <Plus className="h-3.5 w-3.5 mr-2" />
         Add
       </SheetTrigger>
@@ -480,5 +494,32 @@ const AssignDialog = ({
         </DialogFooter>
       </DialogPopup>
     </Dialog>
+  );
+};
+
+const ReassignButton = ({
+  onReassign,
+}: {
+  onReassign: () => Promise<void>;
+}) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleReassign = async () => {
+    setLoading(true);
+    try {
+      await onReassign();
+      toast.success("Reassignment completed");
+    } catch (error) {
+      toast.error("Reassignment failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button disabled={loading} variant="outline" onClick={handleReassign}>
+      {loading ? <Spinner /> : <LucideRotate3D className="h-4 w-4 mr-2" />}
+      {loading ? "Reassigning" : "Reassign"}
+    </Button>
   );
 };

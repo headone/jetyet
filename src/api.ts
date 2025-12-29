@@ -72,9 +72,23 @@ export type AppSchema = {
       params: { id: string };
     };
   };
+  /**
+   * Assign or unassign a node to a user
+   */
   "/api/nodes/assign": {
     POST: {
       body: { userId: string; nodeId: string; assign: boolean };
+    };
+  };
+  /**
+   * Reassign nodes to users in bulk
+   */
+  "/api/nodes/reassign": {
+    POST: {
+      body: {
+        userId: string;
+        nodeId: string;
+      }[];
     };
   };
 };
