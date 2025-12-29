@@ -393,18 +393,11 @@ const AssignDialog = ({
   assignedNodes: UserNode[];
   onSuccess?: () => void;
 }) => {
-  const [selectedNodes, setSelectedNodes] = useState<Node[]>([]);
-
-  const fetchAssignedNodes = () => {
-    const selected = assignedNodes
+  const [selectedNodes, setSelectedNodes] = useState<Node[]>(
+    assignedNodes
       .map((node) => nodes.find((n) => n.id === node.nodeId))
-      .filter((node) => !!node);
-    setSelectedNodes(selected);
-  };
-
-  useEffect(() => {
-    fetchAssignedNodes();
-  }, []);
+      .filter((node) => !!node),
+  );
 
   const assignHandler = async () => {
     const callApi = (node: UserNode, assign: boolean) =>

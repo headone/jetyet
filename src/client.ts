@@ -1,5 +1,6 @@
 import type { AppSchema } from "@/api";
 import { toast } from "sonner";
+import { dequal } from "dequal";
 
 type Paths = keyof AppSchema;
 type Methods<P extends Paths> = keyof AppSchema[P];
@@ -88,6 +89,9 @@ export async function apiCallSWR<P extends Paths, M extends Methods<P>>(
 
   const latestEntry = SWR_CACHE.get(cacheKey);
   if (latestEntry && latestEntry.requestId !== currentRequestId) {
+    return;
+  }
+  if (dequal(newData, cachedEntry?.data)) {
     return;
   }
 
