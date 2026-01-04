@@ -37,8 +37,14 @@ export class ClashConfigger implements Configger {
     // inject
     baseConfig.proxies = configs;
     const allProxies = this.nodes.map((node) => node.name);
-    baseConfig["proxy-groups"][0].proxies.push(...allProxies);
-    baseConfig["proxy-groups"][1].proxies = allProxies;
+    baseConfig["proxy-groups"][0].proxies.push(...allProxies); // For Proxy group
+    baseConfig["proxy-groups"][1].proxies = allProxies; // For Auto group
+    // For NETFLIX group
+    allProxies
+      .filter((name) => name.toLowerCase().includes("netflix"))
+      .forEach((name) => {
+        baseConfig["proxy-groups"][2].proxies.push(name);
+      });
 
     return YAML.stringify(baseConfig, null, 2);
   }
@@ -139,6 +145,11 @@ proxy-groups:
       tolerance: 50
       type: url-test
       url: http://www.gstatic.com/generate_204
+    - name: NETFLIX
+      proxies:
+        - Auto
+        # inject
+      type: select
 rules:
   - RULE-SET,AWAvenue-Ads,REJECT
   - GEOSITE,category-scholar-!cn,Proxy
@@ -151,7 +162,7 @@ rules:
   - GEOSITE,google,Proxy
   - GEOSITE,google-cn,Proxy # Google CN 不走代理会导致香港等地区节点 Play Store 异常
   - GEOSITE,telegram,Proxy
-  - GEOSITE,netflix,Proxy
+  - GEOSITE,netflix,NETFLIX
   - GEOSITE,tiktok,Proxy
   - GEOSITE,bahamut,Proxy
   - GEOSITE,spotify,Proxy
@@ -162,7 +173,7 @@ rules:
   - GEOSITE,microsoft,Proxy
   - GEOSITE,geolocation-!cn,Proxy
   - GEOIP,google,Proxy
-  - GEOIP,netflix,Proxy
+  - GEOIP,netflix,NETFLIX
   - GEOIP,telegram,Proxy
   - GEOIP,twitter,Proxy
   - GEOSITE,CN,DIRECT
