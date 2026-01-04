@@ -59,7 +59,7 @@ rule-providers:
     path: ./rule_provider/AWAvenue-Ads.yaml
     url: "https://ghfast.top/https://raw.githubusercontent.com/TG-Twilight/AWAvenue-Ads-Rule/refs/heads/main/Filters/AWAvenue-Ads-Rule-Clash-Classical.yaml"
     interval: 600
-mode: global
+mode: rule
 ipv6: true
 log-level: info
 allow-lan: true
