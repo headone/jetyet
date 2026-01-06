@@ -180,14 +180,7 @@ export const Users = () => {
                       {user.name}
                     </td>
                     <td className="p-4 align-middle">
-                      <Badge
-                        className={cn(
-                          "border-transparent w-14 text-xs",
-                          user.status === 1
-                            ? " bg-green-100 text-green-800 hover:bg-green-200"
-                            : "bg-destructive text-white hover:bg-destructive/80 ",
-                        )}
-                      >
+                      <Badge variant={user.status === 1 ? "success" : "error"}>
                         {user.status === 1 ? "Active" : "Inactive"}
                       </Badge>
                     </td>

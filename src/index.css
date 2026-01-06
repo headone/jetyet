@@ -13,8 +13,13 @@
             BlinkMacSystemFont,
             "Segoe UI",
             Roboto,
-            "Helvetica Neue",
-            Arial,
             sans-serif;
+        font-feature-settings:
+            "cv02", "cv03", "cv04"; /* 开启 Inter 的高级字形修正 */
+        letter-spacing: -0.02em; /* 稍微缩紧字间距，更有高级感 */
     }
+}
+
+.font-orbitron {
+    font-family: "Orbitron", sans-serif;
 }

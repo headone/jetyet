@@ -20,10 +20,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   const navItems = [
-    { label: "Dashboard", href: "/dashboard" },
+    // { label: "Dashboard", href: "/dashboard" },
     { label: "Users", href: "/users" },
     { label: "Nodes", href: "/nodes" },
-    { label: "Settings", href: "/settings" },
+    // { label: "Settings", href: "/settings" },
   ];
 
   return <Layout navItems={navItems}>{children}</Layout>;
@@ -33,14 +33,7 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route
-          index
-          element={
-            <ProtectedRoute>
-              <Users />
-            </ProtectedRoute>
-          }
-        />
+        <Route index element={<Navigate to="/users" replace />} />
         <Route
           path="dashboard"
           element={
