@@ -67,6 +67,24 @@ function createNode(
   query.run(name, host, port, type as string, JSON.stringify(advanced));
 }
 
+function modefiyNode(node: Node): void {
+  console.log("Modifying node:", node);
+  if (!node.id) {
+    throw new Error("Missing node ID");
+  }
+  const query = db.query(
+    "UPDATE nodes SET name = ?1, host = ?2, port = ?3, type = ?4, advanced = ?5, updated_at = datetime('now', 'localtime') WHERE id = ?6",
+  );
+  query.run(
+    node.name,
+    node.host,
+    node.port,
+    node.type as string,
+    JSON.stringify(node.advanced),
+    node.id,
+  );
+}
+
 function assignNode(userId: string, nodeId: string, assign: boolean): void {
   if (!userId || !nodeId) {
     throw new Error("Missing user ID, node ID, or assign value");
@@ -111,6 +129,7 @@ export {
   getNode,
   deleteNode,
   createNode,
+  modefiyNode,
   assignNode,
   getAllNodesByUserId,
 };

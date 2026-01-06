@@ -5,6 +5,7 @@ import {
   getNode,
   deleteNode,
   createNode,
+  modefiyNode,
   assignNode,
 } from "./node";
 import type { AppSchema } from "@/api";
@@ -125,7 +126,16 @@ on("/api/nodes/:id", "GET", (req) => {
   if (!node) return new Response(null, { status: 404 });
   return node;
 });
-on("/api/nodes/:id", "PUT", () => new Response(null, { status: 404 }));
+on("/api/nodes/:id", "PUT", async (req) => {
+  const id = req.params.id;
+  const node = await req.json();
+  // fixme: 偷懒不校验了
+  modefiyNode({
+    id,
+    ...(node as any),
+  });
+  return new Response(null, { status: 201 });
+});
 on("/api/nodes/:id", "DELETE", (req) => {
   const id = req.params.id;
   deleteNode(id);
@@ -199,7 +209,11 @@ export async function routeHandler(
       const appReq = req as AppRequest<any, any>;
       appReq.params = match.pathname.groups || {};
 
-      return route.handler(appReq, server);
+      try {
+        return route.handler(appReq, server);
+      } catch (e) {
+        return new Response(`Internal Server Error: ${e}`, { status: 500 });
+      }
     }
   }
 

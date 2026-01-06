@@ -66,7 +66,13 @@ export type AppSchema = {
     };
     PUT: {
       params: { id: string };
-      body: { name: string; host: string; port: string; type: NodeType };
+      body: {
+        name: string;
+        host: string;
+        port: string;
+        type: NodeType;
+        advanced: NodeAdvancedSchema[NodeType];
+      };
     };
     DELETE: {
       params: { id: string };
