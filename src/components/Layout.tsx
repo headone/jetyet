@@ -6,10 +6,11 @@ import { Menu, MenuItem, MenuPopup, MenuTrigger } from "@/components/ui/menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { LogOut, Moon, Rocket, Sun } from "lucide-react";
+import { LogOut, Moon, Rocket, Sun, SunMoon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useNavigate, useLocation } from "react-router-dom";
 import { apiCall } from "@/client";
+import { useTheme } from "./theme-provider";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,11 +20,18 @@ interface LayoutProps {
 export const Layout: React.FC<LayoutProps> = ({ children, navItems }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { theme, setTheme } = useTheme();
 
   const handleLogout = async () => {
     await apiCall("/api/auth/logout", "POST");
     localStorage.removeItem("authToken");
     navigate("/login", { replace: true });
+  };
+
+  const handleChooseTheme = () => {
+    const nextTheme =
+      theme === "light" ? "dark" : theme === "dark" ? "system" : "light";
+    setTheme(nextTheme);
   };
 
   return (
@@ -62,9 +70,10 @@ export const Layout: React.FC<LayoutProps> = ({ children, navItems }) => {
 
             <Separator orientation="vertical" className="h-5" />
 
-            <Button size="icon" variant="ghost">
-              <Sun className="h-5 w-5" />
-              {/*<Moon className="h-5 w-5" />*/}
+            <Button size="icon" variant="ghost" onClick={handleChooseTheme}>
+              {theme === "system" && <SunMoon className="h-5 w-5" />}
+              {theme === "light" && <Sun className="h-5 w-5" />}
+              {theme === "dark" && <Moon className="h-5 w-5" />}
             </Button>
 
             <div>

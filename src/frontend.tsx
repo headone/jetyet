@@ -9,12 +9,15 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { Toaster } from "@/components/ui/sonner";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const elem = document.getElementById("root")!;
 const app = (
   <StrictMode>
-    <App />
-    <Toaster position="top-center" />
+    <ThemeProvider>
+      <App />
+      <Toaster position="top-center" />
+    </ThemeProvider>
   </StrictMode>
 );
 
