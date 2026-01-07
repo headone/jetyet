@@ -112,6 +112,7 @@ on("/api/users/:id", "PUT", () => new Response(null, { status: 404 }));
 on("/api/users/:id", "DELETE", (req) => {
   const id = req.params.id;
   deleteUser(id);
+  // TODO: deassign
 });
 // node api
 on("/api/nodes", "GET", getAllNodes);
@@ -139,6 +140,7 @@ on("/api/nodes/:id", "PUT", async (req) => {
 on("/api/nodes/:id", "DELETE", (req) => {
   const id = req.params.id;
   deleteNode(id);
+  // TODO: deassign
 });
 on("/api/nodes/assign", "POST", async (req) => {
   const {
