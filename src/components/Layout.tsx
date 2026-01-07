@@ -38,11 +38,11 @@ export const Layout: React.FC<LayoutProps> = ({ children, navItems }) => {
     <div className="w-full sm:max-w-2xl md:max-w-3xl lg:max-w-5xl mx-auto m-auto flex flex-col h-screen">
       <div
         aria-hidden="true"
-        className="w-full sm:max-w-2xl md:max-w-3xl lg:max-w-5xl mx-auto m-auto before:-left-3 after:-right-3 pointer-events-none absolute inset-0 z-45 before:absolute before:inset-y-0 before:w-px before:bg-border/50 after:absolute after:inset-y-0 after:w-px after:bg-border/50"
+        className="w-full hidden md:block sm:max-w-2xl md:max-w-3xl lg:max-w-5xl mx-auto m-auto before:-left-3 after:-right-3 pointer-events-none absolute inset-0 z-45 before:absolute before:inset-y-0 before:w-px before:bg-border/50 after:absolute after:inset-y-0 after:w-px after:bg-border/50"
       />
       <header className="flex-col md:flex">
         <div className="flex h-16 items-center px-4">
-          <div className="flex items-center mr-6 font-bold text-2xl tracking-tight font-orbitron">
+          <div className="flex items-center mr-6 font-bold text-2xl tracking-tight font-logo">
             <div className="w-8 h-8 bg-primary text-primary-foreground rounded-lg flex items-center justify-center mr-2">
               <Rocket className="w-5 h-5" />
             </div>

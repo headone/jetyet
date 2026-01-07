@@ -129,7 +129,9 @@ export const Users = () => {
     <div className="flex-1 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Users</h2>
+          <h2 className="text-3xl font-normal font-header tracking-tight">
+            Users
+          </h2>
           <p className="text-muted-foreground">
             Manage access and traffic limits
           </p>
@@ -222,7 +224,7 @@ export const Users = () => {
                         </Button>*/}
                         <DropdownMenu>
                           <DropdownMenuTrigger
-                            render={<Button variant="ghost" />}
+                            render={<Button size="icon" variant="ghost" />}
                             className="inline-flex h-8 w-8 items-center justify-center rounded-md text-sm font-medium transition-all duration-200 hover:bg-primary/10 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
                           >
                             <LinkIcon className="h-4 w-4" />
@@ -273,8 +275,13 @@ export const Users = () => {
 
                         <AlertDialog>
                           <AlertDialogTrigger
-                            render={<Button variant="ghost" />}
-                            className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
+                            render={
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="w-full text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                              />
+                            }
                           >
                             <Trash2 className="h-4 w-4" />
                           </AlertDialogTrigger>
