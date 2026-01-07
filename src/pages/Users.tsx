@@ -69,6 +69,7 @@ import { toast } from "sonner";
 import copy from "copy-to-clipboard";
 import { apiCall, apiCallSWR } from "@/client";
 import { Spinner } from "@/components/ui/spinner";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export const Users = () => {
   const [users, setUsers] = useState<UserWithNodes[]>([]);
@@ -166,12 +167,6 @@ export const Users = () => {
             </thead>
             <tbody className="[&_tr:last-child]:border-0">
               {users.map((user) => {
-                // const usagePercent =
-                //   user.trafficLimitGB > 0
-                //     ? (user.usedTrafficBytes /
-                //         (user.trafficLimitGB * 1024 * 1024 * 1024)) *
-                //       100
-                //     : 0;
                 const usagePercent = 0;
                 return (
                   <tr
@@ -209,7 +204,40 @@ export const Users = () => {
                         assignedNodes={user.userNodes}
                         onSuccess={fetchUsers}
                       >
-                        {user.userNodes.length} assigned
+                        {/*{user.userNodes.length} assigned*/}
+                        {user.userNodes.length === 0 && "no assigned"}
+                        {user.userNodes.length > 0 &&
+                          nodes.length === 0 &&
+                          `${user.userNodes.length} assigned`}
+                        {user.userNodes.length > 0 && nodes.length > 0 && (
+                          <>
+                            <div className="-space-x-[0.6rem] flex">
+                              {user.userNodes
+                                .slice(0, 3)
+                                .map((ids) =>
+                                  nodes.find((node) => node.id === ids.nodeId),
+                                )
+                                .filter((node) => !!node)
+                                .map((node) => {
+                                  const initials = [...node.name]
+                                    .slice(0, 2)
+                                    .join("");
+                                  return (
+                                    <Avatar>
+                                      <AvatarFallback className="font-node-card">
+                                        {initials}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  );
+                                })}
+                            </div>
+                            <span>
+                              {user.userNodes.length - 3 > 0 &&
+                                nodes.length > 0 &&
+                                `+${user.userNodes.length - 3}`}
+                            </span>
+                          </>
+                        )}
                       </AssignDialog>
                     </td>
                     <td className="p-4 align-middle text-right">
@@ -311,15 +339,6 @@ export const Users = () => {
                             </AlertDialogFooter>
                           </AlertDialogPopup>
                         </AlertDialog>
-
-                        {/*<Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700"
-                          onClick={() => deleteUser(user.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>*/}
                       </div>
                     </td>
                   </tr>
