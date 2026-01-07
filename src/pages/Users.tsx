@@ -467,7 +467,7 @@ const AssignDialog = ({
             Assign the authorized nodes to the user.
           </DialogDescription>
         </DialogHeader>
-        <DialogPanel>
+        <DialogPanel className="font-node-card">
           <Combobox
             value={selectedNodes}
             items={nodes}
@@ -497,7 +497,11 @@ const AssignDialog = ({
               <ComboboxEmpty>No nodes found.</ComboboxEmpty>
               <ComboboxList>
                 {(item: Node) => (
-                  <ComboboxItem key={item.id} value={item}>
+                  <ComboboxItem
+                    key={item.id}
+                    value={item}
+                    className="font-node-card"
+                  >
                     {item.name}
                   </ComboboxItem>
                 )}
