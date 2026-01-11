@@ -147,6 +147,34 @@ function getUserSecrets(userId: string): UserSecrets | null {
   return secrets;
 }
 
+function updateUserSubKey(userId: string, customSubKey?: string): string {
+  if (!userId) {
+    throw new Error("Missing user ID");
+  }
+
+  // 如果提供了自定义subKey，使用它；否则自动生成
+  const newSubKey = customSubKey && customSubKey.trim() !== "" 
+    ? customSubKey.trim() 
+    : randomUUIDv7();
+  
+  // 检查subKey是否已被其他用户使用
+  const checkQuery = db.query(
+    "SELECT id FROM users WHERE sub_key = ? AND id != ?"
+  );
+  const existingUser = checkQuery.get(newSubKey, userId);
+  
+  if (existingUser) {
+    throw new Error("DUPLICATE_SUBKEY");
+  }
+  
+  const query = db.query(
+    "UPDATE users SET sub_key = ?, updated_at = datetime('now', 'localtime') WHERE id = ?",
+  );
+  query.run(newSubKey, userId);
+
+  return newSubKey;
+}
+
 export {
   getAllUsers,
   createUser,
@@ -155,4 +183,5 @@ export {
   getUserByUserSecrets,
   getUserInfoBySubKey,
   getUserSecrets,
+  updateUserSubKey,
 };
