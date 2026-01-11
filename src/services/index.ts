@@ -1,5 +1,5 @@
 import { validateToken, authenticate, unauthenticate } from "./auth";
-import { getAllUsers, createUser, deleteUser, getUserSecrets } from "./user";
+import { getAllUsers, createUser, deleteUser, getUserSecrets, updateUserSubKey } from "./user";
 import {
   getAllNodes,
   getNode,
@@ -113,6 +113,23 @@ on("/api/users/:id", "DELETE", (req) => {
   const id = req.params.id;
   deleteUser(id);
   // TODO: deassign
+});
+on("/api/users/:id/subKey", "PUT", async (req) => {
+  const id = req.params.id;
+  const { subKey } = await req.json();
+  
+  try {
+    const newSubKey = updateUserSubKey(id, subKey);
+    return { subKey: newSubKey };
+  } catch (error) {
+    if (error instanceof Error && error.message === "DUPLICATE_SUBKEY") {
+      return new Response(
+        JSON.stringify({ error: "This subscription key is already in use by another user" }),
+        { status: 409, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    throw error;
+  }
 });
 // node api
 on("/api/nodes", "GET", getAllNodes);

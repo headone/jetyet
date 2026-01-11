@@ -44,6 +44,13 @@ export type AppSchema = {
       params: { id: string };
     };
   };
+  "/api/users/:id/subKey": {
+    PUT: {
+      params: { id: string };
+      body: { subKey?: string };
+      response: { subKey: string };
+    };
+  };
   // nodes
   "/api/nodes": {
     GET: {

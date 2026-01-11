@@ -62,6 +62,7 @@ import {
   Network,
   Shuffle,
   Rocket,
+  Key,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { type UserWithNodes, type Node, type UserNode } from "@/types";
@@ -300,6 +301,12 @@ export const Users = () => {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
+
+                        <ResetSubKeyDialog
+                          userId={user.id}
+                          userName={user.name}
+                          onSuccess={fetchUsers}
+                        />
 
                         <AlertDialog>
                           <AlertDialogTrigger
@@ -544,5 +551,104 @@ const ReassignButton = ({
       {loading ? <Spinner /> : <LucideRotate3D className="h-4 w-4 mr-2" />}
       {loading ? "Reassigning" : "Reassign"}
     </Button>
+  );
+};
+
+const ResetSubKeyDialog = ({
+  userId,
+  userName,
+  onSuccess,
+}: {
+  userId: string;
+  userName: string;
+  onSuccess?: () => void;
+}) => {
+  const [loading, setLoading] = useState(false);
+  const [customSubKey, setCustomSubKey] = useState("");
+  const [open, setOpen] = useState(false);
+
+  const handleResetSubKey = async () => {
+    setLoading(true);
+    try {
+      const response = await apiCall("/api/users/:id/subKey", "PUT", {
+        params: { id: userId },
+        body: { subKey: customSubKey },
+      });
+      toast.success(`Subscription key has been reset`);
+      setOpen(false); // Close dialog
+      setCustomSubKey(""); // Clear input
+      onSuccess?.();
+    } catch (error: any) {
+      // Check if error has a response with error message
+      if (error?.response?.error) {
+        toast.error(error.response.error);
+      } else if (error?.message) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to reset subscription key");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Clear input when dialog closes
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      setCustomSubKey("");
+    }
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
+      <AlertDialogTrigger
+        render={
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-8 w-8"
+            disabled={loading}
+          />
+        }
+      >
+        <Key className="h-4 w-4" />
+      </AlertDialogTrigger>
+      <AlertDialogPopup>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Reset Subscription Key?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will generate a new subscription key for user <strong>{userName}</strong>.
+            <br />
+            <strong className="text-destructive">
+              The old subscription link will be immediately invalidated, and the user will need to use the new subscription link.
+            </strong>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="px-6 py-4">
+          <Field name="customSubKey">
+            <FieldLabel>Custom Subscription Key (Optional)</FieldLabel>
+            <Input
+              type="text"
+              placeholder="Leave empty to auto-generate"
+              value={customSubKey}
+              onChange={(e) => setCustomSubKey(e.target.value)}
+            />
+          </Field>
+        </div>
+        <AlertDialogFooter variant="bare">
+          <AlertDialogClose render={<Button variant="ghost" />}>
+            Cancel
+          </AlertDialogClose>
+          <Button
+            variant="destructive"
+            disabled={loading}
+            onClick={handleResetSubKey}
+          >
+            {loading ? <Spinner /> : "Confirm Reset"}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogPopup>
+    </AlertDialog>
   );
 };
