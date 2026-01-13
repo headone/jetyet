@@ -45,17 +45,12 @@ export async function apiCall<P extends Paths, M extends Methods<P>>(
 
   if (!res.ok) {
     let errorMsg = res.statusText;
-    let errorData = null;
     try {
-      errorData = await res.json();
-      errorMsg = errorData.error || errorData.message || JSON.stringify(errorData);
+      const errorBody = await res.json();
+      errorMsg = errorBody.message || JSON.stringify(errorBody);
     } catch {}
-    
-    // Create error object with response data
-    const error: any = new Error(`API Error ${res.status}: ${errorMsg}`);
-    error.status = res.status;
-    error.response = errorData;
-    throw error;
+    toast.error(errorMsg);
+    throw new Error(`API Error ${res.status}: ${errorMsg}`);
   }
 
   if (res.status === 204) {

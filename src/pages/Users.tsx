@@ -570,7 +570,7 @@ const ResetSubKeyDialog = ({
   const handleResetSubKey = async () => {
     setLoading(true);
     try {
-      const response = await apiCall("/api/users/:id/subKey", "PUT", {
+      await apiCall("/api/users/:id/subKey", "PUT", {
         params: { id: userId },
         body: { subKey: customSubKey },
       });
@@ -579,14 +579,7 @@ const ResetSubKeyDialog = ({
       setCustomSubKey(""); // Clear input
       onSuccess?.();
     } catch (error: any) {
-      // Check if error has a response with error message
-      if (error?.response?.error) {
-        toast.error(error.response.error);
-      } else if (error?.message) {
-        toast.error(error.message);
-      } else {
-        toast.error("Failed to reset subscription key");
-      }
+      toast.error("Failed to reset subscription key");
     } finally {
       setLoading(false);
     }
@@ -618,10 +611,12 @@ const ResetSubKeyDialog = ({
         <AlertDialogHeader>
           <AlertDialogTitle>Reset Subscription Key?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will generate a new subscription key for user <strong>{userName}</strong>.
+            This will generate a new subscription key for user{" "}
+            <strong>{userName}</strong>.
             <br />
             <strong className="text-destructive">
-              The old subscription link will be immediately invalidated, and the user will need to use the new subscription link.
+              The old subscription link will be immediately invalidated, and the
+              user will need to use the new subscription link.
             </strong>
           </AlertDialogDescription>
         </AlertDialogHeader>
