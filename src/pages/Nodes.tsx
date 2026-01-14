@@ -161,7 +161,6 @@ export const Nodes = () => {
         </div>
       </div>
       <NodeSheet
-        key={editingNode ? editingNode.id : "new-node"}
         open={isSheetOpen}
         onOpenChange={setSheetOpen}
         node={editingNode} // 传入当前节点
@@ -188,6 +187,12 @@ const NodeSheet = ({ open, onOpenChange, onSuccess, node }: NodeSheetProps) => {
   );
 
   const isEditMode = !!node;
+
+  useEffect(() => {
+    if (open) {
+      setNodeType(node?.type || NODE_TYPES[0]);
+    }
+  }, [node, open]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -241,7 +246,11 @@ const NodeSheet = ({ open, onOpenChange, onSuccess, node }: NodeSheetProps) => {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetPopup inset>
-        <Form className="h-full gap-0" onSubmit={handleSubmit}>
+        <Form
+          key={node ? node.id : "new-node"}
+          className="h-full gap-0"
+          onSubmit={handleSubmit}
+        >
           <SheetHeader>
             <SheetTitle>{isEditMode ? "Edit Node" : "Add Node"}</SheetTitle>
             <SheetDescription>
