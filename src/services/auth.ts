@@ -1,5 +1,6 @@
 const ADMIN_NAME = Bun.env.ADMIN_NAME;
 const ADMIN_PASSWORD = Bun.env.ADMIN_PASSWORD;
+const NODE_AUTH_TOKEN = Bun.env.NODE_AUTH_TOKEN;
 let adminToken: string | null = null;
 
 const MAX_ATTEMPTS = 3;
@@ -12,6 +13,10 @@ const loginAttempts: Record<
 
 function validateToken(token: string): boolean {
   return token === adminToken;
+}
+
+function validateNodeToken(token: string | null | undefined): boolean {
+  return Boolean(NODE_AUTH_TOKEN && token && token === NODE_AUTH_TOKEN);
 }
 
 function authenticate(
@@ -49,4 +54,4 @@ function unauthenticate(): void {
   adminToken = null;
 }
 
-export { validateToken, authenticate, unauthenticate };
+export { validateToken, validateNodeToken, authenticate, unauthenticate };

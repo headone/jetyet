@@ -20,7 +20,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   const navItems = [
-    // { label: "Dashboard", href: "/dashboard" },
+    { label: "Dashboard", href: "/dashboard" },
     { label: "Users", href: "/users" },
     { label: "Nodes", href: "/nodes" },
     // { label: "Settings", href: "/settings" },

@@ -1,4 +1,4 @@
-import { validateToken, authenticate, unauthenticate } from "./auth";
+import { validateToken, validateNodeToken, authenticate, unauthenticate } from "./auth";
 import {
   getAllUsers,
   createUser,
@@ -16,6 +16,7 @@ import {
 } from "./node";
 import type { AppSchema } from "@/api";
 import { buildAuthenticator } from "@/subscription";
+import { getDashboardTraffic, getUsersTraffic, ingestTrafficReport, recordTrafficMetric } from "./traffic";
 
 type PathKey = keyof AppSchema;
 type MethodKey<P extends PathKey> = keyof AppSchema[P];
@@ -58,13 +59,51 @@ type StoredRouteHandler = (
 
 interface RouteOptions {
   public?: boolean;
+  nodeAuth?: boolean;
+}
+
+interface RouteMatchResult {
+  pathname: {
+    groups: Record<string, string>;
+  };
 }
 
 interface Route {
   method: string;
-  pattern: URLPattern;
+  path: string;
   handler: StoredRouteHandler;
   options: RouteOptions;
+}
+
+function matchPath(pathPattern: string, pathname: string): RouteMatchResult | null {
+  const patternParts = pathPattern.split("/").filter(Boolean);
+  const pathParts = pathname.split("/").filter(Boolean);
+
+  if (patternParts.length !== pathParts.length) {
+    return null;
+  }
+
+  const groups: Record<string, string> = {};
+
+  for (let index = 0; index < patternParts.length; index += 1) {
+    const patternPart = patternParts[index];
+    const pathPart = pathParts[index];
+
+    if (!patternPart || !pathPart) {
+      return null;
+    }
+
+    if (patternPart.startsWith(":")) {
+      groups[patternPart.slice(1)] = decodeURIComponent(pathPart);
+      continue;
+    }
+
+    if (patternPart !== pathPart) {
+      return null;
+    }
+  }
+
+  return { pathname: { groups } };
 }
 
 const routes: Route[] = [];
@@ -76,7 +115,7 @@ function on<P extends PathKey, M extends MethodKey<P>>(
 ) {
   routes.push({
     method: method as string,
-    pattern: new URLPattern({ pathname: path as string }),
+    path: path as string,
     handler: async (req: AppRequest<P, M>, server: Bun.Server<undefined>) => {
       const result = await handler(req, server);
 
@@ -113,6 +152,37 @@ on("/api/users", "POST", async (req) => {
   createUser(name);
   return new Response(null, { status: 201 });
 });
+on("/api/users/traffic", "GET", () => getUsersTraffic());
+on("/api/dashboard/traffic", "GET", () => getDashboardTraffic());
+on(
+  "/api/traffic/report",
+  "POST",
+  async (req) => {
+    const { reportId, nodeId, occurredAt, records } = await req.json();
+
+    try {
+      const result = ingestTrafficReport({
+        reportId,
+        nodeId,
+        occurredAt,
+        records,
+      });
+      return result;
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "NODE_NOT_FOUND") {
+          return new Response("Node not found", { status: 404 });
+        }
+        if (error.message === "INVALID_TRAFFIC_REPORT") {
+          return new Response("Invalid traffic report payload", { status: 400 });
+        }
+      }
+
+      return new Response("Failed to ingest traffic report", { status: 500 });
+    }
+  },
+  { nodeAuth: true },
+);
 on("/api/users/:id", "GET", () => new Response(null, { status: 404 }));
 on("/api/users/:id", "PUT", () => new Response(null, { status: 404 }));
 on("/api/users/:id", "DELETE", (req) => {
@@ -221,22 +291,33 @@ export async function routeHandler(
     if (route.method !== req.method) continue;
 
     const url = new URL(req.url);
-    const match = route.pattern.exec({ pathname: url.pathname });
+    const match = matchPath(route.path, url.pathname);
     if (match) {
       if (!route.options.public) {
-        // check if the token is valid
-        const authToken = req.headers.get("Authorization");
-        if (!authToken || !validateToken(authToken)) {
-          return new Response("Unauthorized", { status: 401 });
+        if (route.options.nodeAuth) {
+          const nodeToken = req.headers.get("x-node-token");
+          if (!validateNodeToken(nodeToken)) {
+            return new Response("Unauthorized", { status: 401 });
+          }
+        } else {
+          const authToken = req.headers.get("Authorization");
+          if (!authToken || !validateToken(authToken)) {
+            return new Response("Unauthorized", { status: 401 });
+          }
         }
       }
 
       // inject path params
       const appReq = req as AppRequest<any, any>;
       appReq.params = match.pathname.groups || {};
+      appReq.query = url.searchParams;
 
       try {
-        return route.handler(appReq, server);
+        const response = await route.handler(appReq, server);
+        if (!["/api/users/traffic", "/api/dashboard/traffic"].includes(url.pathname)) {
+          recordTrafficMetric({ metric: "api_request" });
+        }
+        return response;
       } catch (e) {
         return new Response(`Internal Server Error: ${e}`, { status: 500 });
       }

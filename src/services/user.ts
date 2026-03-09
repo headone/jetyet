@@ -78,7 +78,11 @@ function getUser(id: string): User | null {
   const userQuery = db.query(
     "SELECT id, name, sub_key, status, created_at, updated_at FROM users WHERE id = ?",
   );
-  const usersRaw = userQuery.get() as any;
+  const usersRaw = userQuery.get(id) as any;
+  if (!usersRaw) {
+    return null;
+  }
+
   const user = {
     id: usersRaw.id,
     name: usersRaw.name,

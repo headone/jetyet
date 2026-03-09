@@ -4,6 +4,7 @@ import type {
   NodeType,
   NodeAdvancedSchema,
   UserWithNodes,
+  TrafficOverview,
 } from "@/types";
 
 export type AppSchema = {
@@ -49,6 +50,38 @@ export type AppSchema = {
       params: { id: string };
       body: { subKey?: string };
       response: { subKey: string };
+    };
+  };
+  "/api/users/traffic": {
+    GET: {
+      response: TrafficOverview;
+    };
+  };
+  "/api/dashboard/traffic": {
+    GET: {
+      response: TrafficOverview;
+    };
+  };
+  "/api/traffic/report": {
+    POST: {
+      body: {
+        reportId: string;
+        nodeId: string;
+        occurredAt?: string;
+        records: Array<{
+          userId?: string;
+          auth?: string;
+          secret?: string;
+          bytesUp?: number;
+          bytesDown?: number;
+          totalBytes?: number;
+          bytes?: number;
+        }>;
+      };
+      response: {
+        duplicate: boolean;
+        processed: number;
+      };
     };
   };
   // nodes
