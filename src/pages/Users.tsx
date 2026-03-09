@@ -64,8 +64,8 @@ import {
   Rocket,
   Key,
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { type UserWithNodes, type Node, type UserNode } from "@/types";
+import { useEffect, useMemo, useState } from "react";
+import { type UserWithNodes, type Node, type UserNode, type TrafficOverview, type UserTrafficSummary } from "@/types";
 import { toast } from "sonner";
 import copy from "copy-to-clipboard";
 import { apiCall, apiCallSWR } from "@/client";
@@ -75,6 +75,33 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 export const Users = () => {
   const [users, setUsers] = useState<UserWithNodes[]>([]);
   const [nodes, setNodes] = useState<Node[]>([]);
+  const [trafficOverview, setTrafficOverview] = useState<TrafficOverview | null>(null);
+
+  const getTrafficBytes = (entry?: {
+    totalBytes?: number;
+    usageBytes?: number;
+    bytes?: number;
+  } | null) => entry?.totalBytes ?? entry?.usageBytes ?? entry?.bytes ?? 0;
+
+  const getTrafficLimitBytes = (entry?: {
+    trafficLimitBytes?: number | null;
+    limitBytes?: number | null;
+  } | null) => entry?.trafficLimitBytes ?? entry?.limitBytes ?? null;
+
+  const trafficUsers = useMemo(
+    () => trafficOverview?.users ?? trafficOverview?.userTraffic ?? [],
+    [trafficOverview],
+  );
+
+  const trafficByUser = useMemo(() => {
+    const map = new Map<string, UserTrafficSummary>();
+    for (const item of trafficUsers) {
+      if (item.userId) map.set(item.userId, item);
+      if (item.id) map.set(item.id, item);
+      map.set(item.name, item);
+    }
+    return map;
+  }, [trafficUsers]);
 
   const fetchUsers = async () => {
     await apiCallSWR("/api/users", "GET", undefined, setUsers);
@@ -84,14 +111,19 @@ export const Users = () => {
     await apiCallSWR("/api/nodes", "GET", undefined, setNodes);
   };
 
+  const fetchTraffic = async () => {
+    await apiCallSWR("/api/users/traffic", "GET", undefined, setTrafficOverview);
+  };
+
   const deleteUser = async (id: string) => {
     await apiCall("/api/users/:id", "DELETE", { params: { id } });
 
     fetchUsers();
+    fetchTraffic();
   };
 
   useEffect(() => {
-    Promise.all([fetchUsers(), fetchNodes()]);
+    Promise.all([fetchUsers(), fetchNodes(), fetchTraffic()]);
   }, []);
 
   const formatBytes = (bytes: number) => {
@@ -168,7 +200,16 @@ export const Users = () => {
             </thead>
             <tbody className="[&_tr:last-child]:border-0">
               {users.map((user) => {
-                const usagePercent = 0;
+                const traffic =
+                  trafficByUser.get(user.id) ??
+                  trafficByUser.get(user.name) ??
+                  null;
+                const usedBytes = getTrafficBytes(traffic);
+                const limitBytes = getTrafficLimitBytes(traffic);
+                const usagePercent =
+                  limitBytes && limitBytes > 0
+                    ? (usedBytes / limitBytes) * 100
+                    : 0;
                 return (
                   <tr
                     key={user.id}
@@ -184,10 +225,12 @@ export const Users = () => {
                     </td>
                     <td className="p-4 align-middle">
                       <div className="w-45 space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span>{formatBytes(0)}</span>
-                          <span className="text-muted-foreground">
-                            {/*{user.trafficLimitGB} GB*/}∞ GB
+                        <div className="flex justify-between gap-3 text-xs">
+                          <span>{formatBytes(usedBytes)}</span>
+                          <span className="text-muted-foreground whitespace-nowrap">
+                            {limitBytes && limitBytes > 0
+                              ? formatBytes(limitBytes)
+                              : "∞"}
                           </span>
                         </div>
                         <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
@@ -195,6 +238,9 @@ export const Users = () => {
                             className={`h-full transition-all ${usagePercent > 90 ? "bg-red-500" : "bg-primary"}`}
                             style={{ width: `${Math.min(usagePercent, 100)}%` }}
                           />
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {traffic?.requestCount ?? traffic?.visits ?? 0} requests
                         </div>
                       </div>
                     </td>

@@ -70,6 +70,92 @@ export interface UserNode {
   nodeId: string;
 }
 
+export interface UserTrafficPoint {
+  date: string;
+  bytesUp?: number;
+  bytesDown?: number;
+  totalBytes?: number;
+  usageBytes?: number;
+  bytes?: number;
+  eventCount?: number;
+  requestCount?: number;
+  visits?: number;
+  subscriptionVisits?: number;
+  apiRequests?: number;
+  nodeAuthSuccessCount?: number;
+  nodeAuthFailureCount?: number;
+}
+
+export interface UserTrafficSummary {
+  userId?: string;
+  id?: string;
+  name: string;
+  status?: 0 | 1;
+  assignedNodeCount?: number;
+  bytesUp?: number;
+  bytesDown?: number;
+  totalBytes?: number;
+  usageBytes?: number;
+  bytes?: number;
+  trafficLimitBytes?: number | null;
+  limitBytes?: number | null;
+  eventCount?: number;
+  requestCount?: number;
+  visits?: number;
+  subscriptionVisits?: number;
+  apiRequests?: number;
+  nodeAuthSuccessCount?: number;
+  nodeAuthFailureCount?: number;
+  lastSeenAt?: string | null;
+  lastAccessAt?: string | null;
+  today?: UserTrafficPoint;
+}
+
+export interface NodeTrafficSummary {
+  nodeId?: string;
+  id?: string;
+  name: string;
+  totalBytes?: number;
+  usageBytes?: number;
+  bytes?: number;
+  requestCount?: number;
+  visits?: number;
+  subscriptionVisits?: number;
+  apiRequests?: number;
+  nodeAuthSuccessCount?: number;
+  nodeAuthFailureCount?: number;
+}
+
+export interface TrafficOverview {
+  totalBytes?: number;
+  usageBytes?: number;
+  bytes?: number;
+  bytesUp?: number;
+  bytesDown?: number;
+  requestCount?: number;
+  eventCount?: number;
+  visits?: number;
+  subscriptionVisits?: number;
+  apiRequests?: number;
+  nodeAuthSuccessCount?: number;
+  nodeAuthFailureCount?: number;
+  activeUsers?: number;
+  activeNodes?: number;
+  reportingUsers?: number;
+  totalUsers?: number;
+  lastAccessAt?: string | null;
+  lastSeenAt?: string | null;
+  users?: UserTrafficSummary[];
+  userTraffic?: UserTrafficSummary[];
+  topUsers?: UserTrafficSummary[];
+  topNodes?: NodeTrafficSummary[];
+  nodes?: NodeTrafficSummary[];
+  timeSeries?: UserTrafficPoint[];
+  timeseries?: UserTrafficPoint[];
+  dailyTraffic?: UserTrafficPoint[];
+}
+
 export type UserWithNodes = User & {
   userNodes: UserNode[];
 };
+

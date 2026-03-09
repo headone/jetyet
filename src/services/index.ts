@@ -1,4 +1,4 @@
-import { validateToken, authenticate, unauthenticate } from "./auth";
+import { validateToken, validateNodeToken, authenticate, unauthenticate } from "./auth";
 import {
   getAllUsers,
   createUser,
@@ -16,6 +16,7 @@ import {
 } from "./node";
 import type { AppSchema } from "@/api";
 import { buildAuthenticator } from "@/subscription";
+import { getDashboardTraffic, getUsersTraffic, ingestTrafficReport, recordTrafficMetric } from "./traffic";
 
 type PathKey = keyof AppSchema;
 type MethodKey<P extends PathKey> = keyof AppSchema[P];
@@ -58,6 +59,7 @@ type StoredRouteHandler = (
 
 interface RouteOptions {
   public?: boolean;
+  nodeAuth?: boolean;
 }
 
 interface Route {
@@ -138,6 +140,37 @@ on("/api/users/:id/subKey", "PUT", async (req) => {
     return new Response(null, { status: 500 });
   }
 });
+on("/api/users/traffic", "GET", () => getUsersTraffic());
+on("/api/dashboard/traffic", "GET", () => getDashboardTraffic());
+on(
+  "/api/traffic/report",
+  "POST",
+  async (req) => {
+    const { reportId, nodeId, occurredAt, records } = await req.json();
+
+    try {
+      const result = ingestTrafficReport({
+        reportId,
+        nodeId,
+        occurredAt,
+        records,
+      });
+      return result;
+    } catch (error) {
+      if (error instanceof Error) {
+        if (error.message === "NODE_NOT_FOUND") {
+          return new Response("Node not found", { status: 404 });
+        }
+        if (error.message === "INVALID_TRAFFIC_REPORT") {
+          return new Response("Invalid traffic report payload", { status: 400 });
+        }
+      }
+
+      return new Response("Failed to ingest traffic report", { status: 500 });
+    }
+  },
+  { nodeAuth: true },
+);
 // node api
 on("/api/nodes", "GET", getAllNodes);
 on("/api/nodes", "POST", async (req) => {
@@ -224,19 +257,30 @@ export async function routeHandler(
     const match = route.pattern.exec({ pathname: url.pathname });
     if (match) {
       if (!route.options.public) {
-        // check if the token is valid
-        const authToken = req.headers.get("Authorization");
-        if (!authToken || !validateToken(authToken)) {
-          return new Response("Unauthorized", { status: 401 });
+        if (route.options.nodeAuth) {
+          const nodeToken = req.headers.get("x-node-token");
+          if (!validateNodeToken(nodeToken)) {
+            return new Response("Unauthorized", { status: 401 });
+          }
+        } else {
+          const authToken = req.headers.get("Authorization");
+          if (!authToken || !validateToken(authToken)) {
+            return new Response("Unauthorized", { status: 401 });
+          }
         }
       }
 
       // inject path params
       const appReq = req as AppRequest<any, any>;
       appReq.params = match.pathname.groups || {};
+      appReq.query = url.searchParams;
 
       try {
-        return route.handler(appReq, server);
+        const response = await route.handler(appReq, server);
+        if (!["/api/users/traffic", "/api/dashboard/traffic"].includes(url.pathname)) {
+          recordTrafficMetric({ metric: "api_request" });
+        }
+        return response;
       } catch (e) {
         return new Response(`Internal Server Error: ${e}`, { status: 500 });
       }

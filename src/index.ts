@@ -6,7 +6,8 @@ import {
   buildConfigger,
   type ConfigType,
 } from "./subscription";
-import { getUserInfoBySubKey } from "./services/user";
+import { getUserInfoBySubKey, getUserByUserSecrets } from "./services/user";
+import { recordTrafficMetric } from "./services/traffic";
 import { type NodeType } from "@/types";
 
 const server = serve({
@@ -39,6 +40,11 @@ const server = serve({
       const headers = configger.headers();
       const configStr = await configger.stringifySubscription();
 
+      recordTrafficMetric({
+        metric: "subscription_visit",
+        userId: userInfo.id,
+      });
+
       return new Response(configStr, { headers });
     },
     "/api/nodes/auth/:type": async (req) => {
@@ -47,6 +53,15 @@ const server = serve({
 
       const authenticator = buildAuthenticator(type as NodeType);
       const result = await authenticator.auth(data);
+      const user =
+        type === "hysteria2" && data?.auth
+          ? getUserByUserSecrets(data.auth, type as NodeType)
+          : null;
+
+      recordTrafficMetric({
+        metric: result?.ok ? "node_auth_success" : "node_auth_failure",
+        userId: user?.id,
+      });
 
       return Response.json(result || {});
     },
