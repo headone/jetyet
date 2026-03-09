@@ -62,11 +62,48 @@ interface RouteOptions {
   nodeAuth?: boolean;
 }
 
+interface RouteMatchResult {
+  pathname: {
+    groups: Record<string, string>;
+  };
+}
+
 interface Route {
   method: string;
-  pattern: URLPattern;
+  path: string;
   handler: StoredRouteHandler;
   options: RouteOptions;
+}
+
+function matchPath(pathPattern: string, pathname: string): RouteMatchResult | null {
+  const patternParts = pathPattern.split("/").filter(Boolean);
+  const pathParts = pathname.split("/").filter(Boolean);
+
+  if (patternParts.length !== pathParts.length) {
+    return null;
+  }
+
+  const groups: Record<string, string> = {};
+
+  for (let index = 0; index < patternParts.length; index += 1) {
+    const patternPart = patternParts[index];
+    const pathPart = pathParts[index];
+
+    if (!patternPart || !pathPart) {
+      return null;
+    }
+
+    if (patternPart.startsWith(":")) {
+      groups[patternPart.slice(1)] = decodeURIComponent(pathPart);
+      continue;
+    }
+
+    if (patternPart !== pathPart) {
+      return null;
+    }
+  }
+
+  return { pathname: { groups } };
 }
 
 const routes: Route[] = [];
@@ -78,7 +115,7 @@ function on<P extends PathKey, M extends MethodKey<P>>(
 ) {
   routes.push({
     method: method as string,
-    pattern: new URLPattern({ pathname: path as string }),
+    path: path as string,
     handler: async (req: AppRequest<P, M>, server: Bun.Server<undefined>) => {
       const result = await handler(req, server);
 
@@ -115,31 +152,6 @@ on("/api/users", "POST", async (req) => {
   createUser(name);
   return new Response(null, { status: 201 });
 });
-on("/api/users/:id", "GET", () => new Response(null, { status: 404 }));
-on("/api/users/:id", "PUT", () => new Response(null, { status: 404 }));
-on("/api/users/:id", "DELETE", (req) => {
-  const id = req.params.id;
-  deleteUser(id);
-  // TODO: deassign
-});
-on("/api/users/:id/subKey", "PUT", async (req) => {
-  const id = req.params.id;
-  const { subKey } = await req.json();
-
-  try {
-    const newSubKey = updateUserSubKey(id, subKey);
-    return { subKey: newSubKey };
-  } catch (error) {
-    if (error instanceof Error && error.message === "DUPLICATE_SUBKEY") {
-      return new Response(
-        "This subscription key is already in use by another user",
-        { status: 409 },
-      );
-    }
-
-    return new Response(null, { status: 500 });
-  }
-});
 on("/api/users/traffic", "GET", () => getUsersTraffic());
 on("/api/dashboard/traffic", "GET", () => getDashboardTraffic());
 on(
@@ -171,6 +183,31 @@ on(
   },
   { nodeAuth: true },
 );
+on("/api/users/:id", "GET", () => new Response(null, { status: 404 }));
+on("/api/users/:id", "PUT", () => new Response(null, { status: 404 }));
+on("/api/users/:id", "DELETE", (req) => {
+  const id = req.params.id;
+  deleteUser(id);
+  // TODO: deassign
+});
+on("/api/users/:id/subKey", "PUT", async (req) => {
+  const id = req.params.id;
+  const { subKey } = await req.json();
+
+  try {
+    const newSubKey = updateUserSubKey(id, subKey);
+    return { subKey: newSubKey };
+  } catch (error) {
+    if (error instanceof Error && error.message === "DUPLICATE_SUBKEY") {
+      return new Response(
+        "This subscription key is already in use by another user",
+        { status: 409 },
+      );
+    }
+
+    return new Response(null, { status: 500 });
+  }
+});
 // node api
 on("/api/nodes", "GET", getAllNodes);
 on("/api/nodes", "POST", async (req) => {
@@ -254,7 +291,7 @@ export async function routeHandler(
     if (route.method !== req.method) continue;
 
     const url = new URL(req.url);
-    const match = route.pattern.exec({ pathname: url.pathname });
+    const match = matchPath(route.path, url.pathname);
     if (match) {
       if (!route.options.public) {
         if (route.options.nodeAuth) {
