@@ -4,6 +4,11 @@ import { XtlsApi } from "@remnawave/xtls-sdk";
 import type { UserMonthlyTraffic } from "@/types";
 
 const XRAY_API_PORT = "10086";
+const BILLING_TIME_ZONE =
+  Bun.env.TRAFFIC_TIMEZONE ||
+  Bun.env.SUBSCRIPTION_TIMEZONE ||
+  Bun.env.TZ ||
+  "Asia/Hong_Kong";
 
 type UsageMetric = "uplink" | "downlink" | "unclassified";
 type SourceType = "hy2" | "xray";
@@ -43,23 +48,102 @@ export type UserTrafficLimitStatus = {
   overLimit: boolean;
 };
 
+type ZonedDateParts = {
+  year: number;
+  month: number;
+};
+
+function getZonedDateParts(
+  date = new Date(),
+  timeZone = BILLING_TIME_ZONE,
+): ZonedDateParts {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = formatter.formatToParts(date);
+  const year = Number(parts.find((part) => part.type === "year")?.value);
+  const month = Number(parts.find((part) => part.type === "month")?.value);
+
+  if (!Number.isFinite(year) || !Number.isFinite(month)) {
+    throw new Error(`Failed to resolve billing date parts for ${timeZone}`);
+  }
+
+  return { year, month };
+}
+
+function getTimeZoneOffsetMs(
+  date: Date,
+  timeZone = BILLING_TIME_ZONE,
+): number {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone,
+    timeZoneName: "longOffset",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  });
+  const offsetLabel = formatter
+    .formatToParts(date)
+    .find((part) => part.type === "timeZoneName")?.value;
+
+  if (!offsetLabel || offsetLabel === "GMT") {
+    return 0;
+  }
+
+  const match = offsetLabel.match(/^GMT([+-])(\d{2}):(\d{2})$/);
+  if (!match) {
+    throw new Error(`Unsupported timezone offset format: ${offsetLabel}`);
+  }
+
+  const [, sign, hours, minutes] = match;
+  const offsetMs =
+    (Number(hours) * 60 + Number(minutes)) * 60 * 1000;
+
+  return sign === "+" ? offsetMs : -offsetMs;
+}
+
+function zonedDateTimeToUnix(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number,
+  timeZone = BILLING_TIME_ZONE,
+): number {
+  const utcGuess = Date.UTC(year, month - 1, day, hour, minute, second, 0);
+  const firstPass = utcGuess - getTimeZoneOffsetMs(new Date(utcGuess), timeZone);
+  const secondPass =
+    utcGuess - getTimeZoneOffsetMs(new Date(firstPass), timeZone);
+
+  return Math.floor(secondPass / 1000);
+}
+
 function getCurrentMonthKey(date = new Date()): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  return `${year}-${month}`;
+  const { year, month } = getZonedDateParts(date);
+  return `${year}-${String(month).padStart(2, "0")}`;
 }
 
 function getCurrentMonthExpireUnix(date = new Date()): number {
-  const nextMonthStart = new Date(
-    date.getFullYear(),
-    date.getMonth() + 1,
+  const { year, month } = getZonedDateParts(date);
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextMonthYear = month === 12 ? year + 1 : year;
+
+  return zonedDateTimeToUnix(
+    nextMonthYear,
+    nextMonth,
     1,
     0,
     0,
     0,
-    0,
   );
-  return Math.floor(nextMonthStart.getTime() / 1000);
 }
 
 function toSafeCounter(value: number): number {
@@ -157,7 +241,12 @@ function consumeMonotonicCounter(params: {
         ) VALUES (?1, ?2, ?3, ?4, ?5, datetime('now', 'localtime'), datetime('now', 'localtime'))
       `,
     ).run(sourceType, sourceKey, metric, userId, safeCurrent);
-    return 0;
+
+    if (safeCurrent > 0) {
+      addTrafficDelta(userId, monthKey, usageMetric, safeCurrent);
+    }
+
+    return safeCurrent;
   }
 
   const delta = safeCurrent >= existing.last_value ? safeCurrent - existing.last_value : 0;
