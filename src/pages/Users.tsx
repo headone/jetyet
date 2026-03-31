@@ -188,23 +188,23 @@ export const Users = () => {
       </div>
 
       <Card className="rounded-md border py-0">
-        <div className="relative w-full overflow-auto">
-          <table className="w-full caption-bottom text-sm">
+        <div className="relative w-full overflow-hidden">
+          <table className="w-full table-fixed caption-bottom text-sm">
             <thead className="[&_tr]:border-b">
               <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
+                <th className="h-12 w-[22%] px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
                   Username
                 </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
+                <th className="h-12 w-[12%] px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
                   Status
                 </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
+                <th className="h-12 w-[36%] px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
                   Usage
                 </th>
-                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
+                <th className="h-12 w-[18%] px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
                   Nodes
                 </th>
-                <th className="h-12 px-4 text-right align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
+                <th className="h-12 w-[12%] px-4 text-right align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0">
                   Actions
                 </th>
               </tr>
@@ -226,15 +226,15 @@ export const Users = () => {
                     className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
                   >
                     <td className="p-4 align-middle font-medium">
-                      {user.name}
+                      <div className="truncate">{user.name}</div>
                     </td>
                     <td className="p-4 align-middle">
                       <Badge variant={user.status === 1 ? "success" : "error"}>
                         {user.status === 1 ? "Active" : "Inactive"}
                       </Badge>
                     </td>
-                    <td className="p-4 align-middle">
-                      <div className="w-45 space-y-1">
+                    <td className="w-[36%] p-4 align-middle">
+                        <div className="w-full min-w-0 space-y-1">
                         <div className="flex justify-between text-xs">
                           <span>{formatBytes(usedBytes)}</span>
                           <span className="text-muted-foreground">
