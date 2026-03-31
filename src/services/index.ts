@@ -4,8 +4,17 @@ import {
   createUser,
   deleteUser,
   getUserSecrets,
+  updateUserMonthlyLimit,
   updateUserSubKey,
 } from "./user";
+import {
+  listUsersMonthlyTraffic,
+  resetUserMonthlyTraffic,
+} from "./traffic";
+import {
+  reconcileTrafficLimitAssignments,
+  syncTrafficAndEnforceLimits,
+} from "./traffic-enforcer";
 import {
   getAllNodes,
   getNode,
@@ -113,6 +122,7 @@ on("/api/users", "POST", async (req) => {
   createUser(name);
   return new Response(null, { status: 201 });
 });
+on("/api/users/traffic", "GET", () => listUsersMonthlyTraffic());
 on("/api/users/:id", "GET", () => new Response(null, { status: 404 }));
 on("/api/users/:id", "PUT", () => new Response(null, { status: 404 }));
 on("/api/users/:id", "DELETE", (req) => {
@@ -137,6 +147,32 @@ on("/api/users/:id/subKey", "PUT", async (req) => {
 
     return new Response(null, { status: 500 });
   }
+});
+on("/api/users/:id/traffic-limit", "PUT", async (req) => {
+  const id = req.params.id;
+  const { monthlyLimitGB } = await req.json();
+
+  if (monthlyLimitGB != null && (!Number.isFinite(monthlyLimitGB) || monthlyLimitGB < 0)) {
+    return new Response("monthlyLimitGB must be a non-negative number or null", {
+      status: 400,
+    });
+  }
+
+  const monthlyLimitBytes = monthlyLimitGB == null
+    ? null
+    : Math.floor(monthlyLimitGB * 1024 * 1024 * 1024);
+
+  const value = updateUserMonthlyLimit(id, monthlyLimitBytes);
+  await reconcileTrafficLimitAssignments();
+  return { monthlyLimitBytes: value };
+});
+on("/api/users/:id/traffic/reset", "POST", async (req) => {
+  resetUserMonthlyTraffic(req.params.id);
+  await reconcileTrafficLimitAssignments();
+  return new Response(null, { status: 201 });
+});
+on("/api/traffic/sync", "POST", async () => {
+  return syncTrafficAndEnforceLimits();
 });
 // node api
 on("/api/nodes", "GET", getAllNodes);

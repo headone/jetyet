@@ -8,6 +8,7 @@ export interface User {
   name: string;
   subKey: string;
   status: 0 | 1; // 0: inactive, 1: active
+  monthlyLimitBytes: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -73,3 +74,13 @@ export interface UserNode {
 export type UserWithNodes = User & {
   userNodes: UserNode[];
 };
+
+export interface UserMonthlyTraffic {
+  userId: string;
+  monthKey: string;
+  uplinkBytes: number;
+  downlinkBytes: number;
+  unclassifiedBytes: number;
+  totalBytes: number;
+  updatedAt: string | null;
+}

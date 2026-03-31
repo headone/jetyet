@@ -4,6 +4,7 @@ import type {
   NodeType,
   NodeAdvancedSchema,
   UserWithNodes,
+  UserMonthlyTraffic,
 } from "@/types";
 
 export type AppSchema = {
@@ -31,6 +32,11 @@ export type AppSchema = {
       body: { name: string };
     };
   };
+  "/api/users/traffic": {
+    GET: {
+      response: UserMonthlyTraffic[];
+    };
+  };
   "/api/users/:id": {
     GET: {
       params: { id: string };
@@ -49,6 +55,40 @@ export type AppSchema = {
       params: { id: string };
       body: { subKey?: string };
       response: { subKey: string };
+    };
+  };
+  "/api/users/:id/traffic-limit": {
+    PUT: {
+      params: { id: string };
+      body: { monthlyLimitGB: number | null };
+      response: { monthlyLimitBytes: number | null };
+    };
+  };
+  "/api/users/:id/traffic/reset": {
+    POST: {
+      params: { id: string };
+    };
+  };
+  "/api/traffic/sync": {
+    POST: {
+      response: {
+        monthKey: string;
+        scannedNodes: number;
+        processedUsers: number;
+        deltaUplinkBytes: number;
+        deltaDownlinkBytes: number;
+        syncErrors: { nodeId: string; message: string }[];
+        enforcement: {
+          assigned: number;
+          deassigned: number;
+          errors: {
+            userId: string;
+            nodeId: string;
+            action: "assign" | "deassign";
+            message: string;
+          }[];
+        };
+      };
     };
   };
   // nodes

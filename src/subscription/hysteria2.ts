@@ -1,6 +1,7 @@
 import { type Authenticator, type ConfigType, type NodeConfigger } from ".";
 import { type Node, type NodeType, type UserSecrets } from "@/types";
 import { getUserByUserSecrets } from "@/services/user";
+import { getUserTrafficLimitStatus, trackHysteria2Traffic } from "@/services/traffic";
 
 type Params = {
   addr: string;
@@ -17,6 +18,20 @@ class Hysteria2Authenticator implements Authenticator<Params, Result> {
     const user = getUserByUserSecrets(params.auth, this.type);
 
     if (!user || user.status !== 1) {
+      return { ok: false, id: "" };
+    }
+
+    const tx = Number(params.tx);
+    if (Number.isFinite(tx) && tx >= 0) {
+      trackHysteria2Traffic({
+        userId: user.id,
+        addr: params.addr || "unknown",
+        tx,
+      });
+    }
+
+    const limitStatus = getUserTrafficLimitStatus(user.id);
+    if (limitStatus?.overLimit) {
       return { ok: false, id: "" };
     }
 

@@ -53,7 +53,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Form } from "@/components/ui/form";
-import { cn } from "@/lib/utils";
 import {
   Plus,
   LucideRotate3D,
@@ -63,9 +62,18 @@ import {
   Shuffle,
   Rocket,
   Key,
+  RefreshCw,
+  CircleGauge,
+  MoreHorizontal,
+  CloudDownload,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { type UserWithNodes, type Node, type UserNode } from "@/types";
+import {
+  type UserWithNodes,
+  type Node,
+  type UserNode,
+  type UserMonthlyTraffic,
+} from "@/types";
 import { toast } from "sonner";
 import copy from "copy-to-clipboard";
 import { apiCall, apiCallSWR } from "@/client";
@@ -75,6 +83,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 export const Users = () => {
   const [users, setUsers] = useState<UserWithNodes[]>([]);
   const [nodes, setNodes] = useState<Node[]>([]);
+  const [trafficByUser, setTrafficByUser] = useState<
+    Record<string, UserMonthlyTraffic>
+  >({});
 
   const fetchUsers = async () => {
     await apiCallSWR("/api/users", "GET", undefined, setUsers);
@@ -84,6 +95,14 @@ export const Users = () => {
     await apiCallSWR("/api/nodes", "GET", undefined, setNodes);
   };
 
+  const fetchTraffic = async () => {
+    await apiCallSWR("/api/users/traffic", "GET", undefined, (rows) => {
+      setTrafficByUser(
+        Object.fromEntries(rows.map((row) => [row.userId, row])),
+      );
+    });
+  };
+
   const deleteUser = async (id: string) => {
     await apiCall("/api/users/:id", "DELETE", { params: { id } });
 
@@ -91,7 +110,7 @@ export const Users = () => {
   };
 
   useEffect(() => {
-    Promise.all([fetchUsers(), fetchNodes()]);
+    Promise.all([fetchUsers(), fetchNodes(), fetchTraffic()]);
   }, []);
 
   const formatBytes = (bytes: number) => {
@@ -127,6 +146,29 @@ export const Users = () => {
     });
   };
 
+  const handleSyncTraffic = async () => {
+    await apiCall("/api/traffic/sync", "POST");
+    await fetchTraffic();
+  };
+
+  const handleResetTraffic = async (userId: string) => {
+    await apiCall("/api/users/:id/traffic/reset", "POST", {
+      params: { id: userId },
+    });
+    await fetchTraffic();
+  };
+
+  const handleUpdateTrafficLimit = async (
+    userId: string,
+    monthlyLimitGB: number | null,
+  ) => {
+    await apiCall("/api/users/:id/traffic-limit", "PUT", {
+      params: { id: userId },
+      body: { monthlyLimitGB },
+    });
+    await Promise.all([fetchUsers(), fetchTraffic()]);
+  };
+
   return (
     <div className="flex-1 space-y-4">
       <div className="flex items-center justify-between">
@@ -140,6 +182,7 @@ export const Users = () => {
         </div>
         <div className="flex gap-2">
           <ReassignButton onReassign={handleReassign} />
+          <SyncTrafficButton onSync={handleSyncTraffic} />
           <AddUserSheet onSuccess={fetchUsers} />
         </div>
       </div>
@@ -168,7 +211,15 @@ export const Users = () => {
             </thead>
             <tbody className="[&_tr:last-child]:border-0">
               {users.map((user) => {
-                const usagePercent = 0;
+                const traffic = trafficByUser[user.id];
+                const usedBytes = traffic?.totalBytes ?? 0;
+                const limitBytes = user.monthlyLimitBytes;
+                const usagePercent =
+                  limitBytes != null && limitBytes > 0
+                    ? (usedBytes / limitBytes) * 100
+                    : 0;
+                const isOverLimit =
+                  limitBytes != null && limitBytes > 0 && usedBytes >= limitBytes;
                 return (
                   <tr
                     key={user.id}
@@ -185,9 +236,9 @@ export const Users = () => {
                     <td className="p-4 align-middle">
                       <div className="w-45 space-y-1">
                         <div className="flex justify-between text-xs">
-                          <span>{formatBytes(0)}</span>
+                          <span>{formatBytes(usedBytes)}</span>
                           <span className="text-muted-foreground">
-                            {/*{user.trafficLimitGB} GB*/}∞ GB
+                            {limitBytes == null ? "∞ GB" : formatBytes(limitBytes)}
                           </span>
                         </div>
                         <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
@@ -196,6 +247,9 @@ export const Users = () => {
                             style={{ width: `${Math.min(usagePercent, 100)}%` }}
                           />
                         </div>
+                        {isOverLimit && (
+                          <p className="text-xs text-red-500">Over monthly limit</p>
+                        )}
                       </div>
                     </td>
                     <td className="p-4 align-middle text-muted-foreground">
@@ -243,14 +297,6 @@ export const Users = () => {
                     </td>
                     <td className="p-4 align-middle text-right">
                       <div className="flex justify-end gap-2">
-                        {/*<Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-8 w-8 p-0"
-                          // onClick={() => handleResetTraffic(user.id)}
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>*/}
                         <DropdownMenu>
                           <DropdownMenuTrigger
                             render={<Button size="icon" variant="ghost" />}
@@ -301,51 +347,15 @@ export const Users = () => {
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-
-                        <ResetSubKeyDialog
+                        <UserOperationMenu
                           userId={user.id}
                           userName={user.name}
-                          onSuccess={fetchUsers}
+                          currentLimitBytes={user.monthlyLimitBytes}
+                          onUpdateTrafficLimit={handleUpdateTrafficLimit}
+                          onResetTraffic={handleResetTraffic}
+                          onResetSubKeyDone={fetchUsers}
+                          onDelete={deleteUser}
                         />
-
-                        <AlertDialog>
-                          <AlertDialogTrigger
-                            render={
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="w-full text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
-                              />
-                            }
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </AlertDialogTrigger>
-                          <AlertDialogPopup>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>
-                                Are you absolutely sure?
-                              </AlertDialogTitle>
-                              <AlertDialogDescription>
-                                This action cannot be undone. This will
-                                permanently delete your USER and remove your
-                                data from our servers.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter variant="bare">
-                              <AlertDialogClose
-                                render={<Button variant="ghost" />}
-                              >
-                                Cancel
-                              </AlertDialogClose>
-                              <AlertDialogClose
-                                render={<Button variant="destructive" />}
-                                onClick={() => deleteUser(user.id)}
-                              >
-                                Delete User
-                              </AlertDialogClose>
-                            </AlertDialogFooter>
-                          </AlertDialogPopup>
-                        </AlertDialog>
                       </div>
                     </td>
                   </tr>
@@ -554,18 +564,326 @@ const ReassignButton = ({
   );
 };
 
+const SyncTrafficButton = ({
+  onSync,
+}: {
+  onSync: () => Promise<void>;
+}) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleSync = async () => {
+    setLoading(true);
+    try {
+      await onSync();
+      toast.success("Traffic synchronized");
+    } catch (error) {
+      toast.error("Traffic synchronization failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Button disabled={loading} variant="outline" onClick={handleSync}>
+      {loading ? <Spinner /> : <CloudDownload className="h-4 w-4 mr-2" />}
+      {loading ? "Syncing" : "Sync Traffic"}
+    </Button>
+  );
+};
+
+const UserOperationMenu = ({
+  userId,
+  userName,
+  currentLimitBytes,
+  onUpdateTrafficLimit,
+  onResetTraffic,
+  onResetSubKeyDone,
+  onDelete,
+}: {
+  userId: string;
+  userName: string;
+  currentLimitBytes: number | null;
+  onUpdateTrafficLimit: (
+    userId: string,
+    monthlyLimitGB: number | null,
+  ) => Promise<void>;
+  onResetTraffic: (userId: string) => Promise<void>;
+  onResetSubKeyDone: () => void;
+  onDelete: (userId: string) => Promise<void>;
+}) => {
+  const [trafficLimitOpen, setTrafficLimitOpen] = useState(false);
+  const [resetTrafficOpen, setResetTrafficOpen] = useState(false);
+  const [resetSubKeyOpen, setResetSubKeyOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger
+          render={
+            <Button size="icon" variant="ghost" className="h-8 w-8" />
+          }
+        >
+          <MoreHorizontal className="h-4 w-4" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent>
+          <DropdownMenuItem
+            onClick={() => setTrafficLimitOpen(true)}
+            className="cursor-pointer"
+          >
+            <CircleGauge className="mr-2 h-4 w-4" />
+            Set Traffic Limit
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setResetTrafficOpen(true)}
+            className="cursor-pointer"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Reset Monthly Traffic
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setResetSubKeyOpen(true)}
+            className="cursor-pointer"
+          >
+            <Key className="mr-2 h-4 w-4" />
+            Reset Subscription Key
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => setDeleteOpen(true)}
+            className="cursor-pointer text-red-600 hover:text-red-700"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete User
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <TrafficLimitDialog
+        userId={userId}
+        userName={userName}
+        currentLimitBytes={currentLimitBytes}
+        onSave={onUpdateTrafficLimit}
+        open={trafficLimitOpen}
+        onOpenChange={setTrafficLimitOpen}
+        showTrigger={false}
+      />
+
+      <ResetTrafficDialog
+        userId={userId}
+        userName={userName}
+        onReset={onResetTraffic}
+        open={resetTrafficOpen}
+        onOpenChange={setResetTrafficOpen}
+        showTrigger={false}
+      />
+
+      <ResetSubKeyDialog
+        userId={userId}
+        userName={userName}
+        onSuccess={onResetSubKeyDone}
+        open={resetSubKeyOpen}
+        onOpenChange={setResetSubKeyOpen}
+        showTrigger={false}
+      />
+
+      <DeleteUserDialog
+        userName={userName}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onDelete={() => onDelete(userId)}
+      />
+    </>
+  );
+};
+
+const TrafficLimitDialog = ({
+  userId,
+  userName,
+  currentLimitBytes,
+  onSave,
+  open,
+  onOpenChange,
+  showTrigger = true,
+}: {
+  userId: string;
+  userName: string;
+  currentLimitBytes: number | null;
+  onSave: (userId: string, monthlyLimitGB: number | null) => Promise<void>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
+}) => {
+  const [loading, setLoading] = useState(false);
+  const [innerOpen, setInnerOpen] = useState(false);
+  const [limitInput, setLimitInput] = useState(
+    currentLimitBytes == null
+      ? ""
+      : (currentLimitBytes / 1024 / 1024 / 1024).toString(),
+  );
+  const actualOpen = open ?? innerOpen;
+  const setOpen = onOpenChange ?? setInnerOpen;
+
+  useEffect(() => {
+    if (actualOpen) {
+      setLimitInput(
+        currentLimitBytes == null
+          ? ""
+          : (currentLimitBytes / 1024 / 1024 / 1024).toString(),
+      );
+    }
+  }, [actualOpen, currentLimitBytes]);
+
+  const handleSave = async () => {
+    const normalized = limitInput.trim();
+    const value = normalized === "" ? null : Number(normalized);
+    if (value != null && (!Number.isFinite(value) || value < 0)) {
+      toast.error("Please enter a non-negative number");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await onSave(userId, value);
+      toast.success(`Monthly traffic limit updated for ${userName}`);
+      setOpen(false);
+    } catch (error) {
+      toast.error("Failed to update monthly traffic limit");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <AlertDialog open={actualOpen} onOpenChange={setOpen}>
+      {showTrigger && (
+        <AlertDialogTrigger
+          render={
+            <Button size="icon" variant="ghost" className="h-8 w-8" disabled={loading} />
+          }
+        >
+          <CircleGauge className="h-4 w-4" />
+        </AlertDialogTrigger>
+      )}
+      <AlertDialogPopup>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Set Monthly Traffic Limit</AlertDialogTitle>
+          <AlertDialogDescription>
+            Set a monthly limit in GB for <strong>{userName}</strong>. Leave empty for unlimited.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <div className="px-6 py-4">
+          <Field name="monthlyLimitGB">
+            <FieldLabel>Monthly Limit (GB)</FieldLabel>
+            <Input
+              type="number"
+              min="0"
+              step="0.1"
+              placeholder="Unlimited"
+              value={limitInput}
+              onChange={(e) => setLimitInput(e.target.value)}
+            />
+          </Field>
+        </div>
+        <AlertDialogFooter variant="bare">
+          <AlertDialogClose render={<Button variant="ghost" />}>
+            Cancel
+          </AlertDialogClose>
+          <Button disabled={loading} onClick={handleSave}>
+            {loading ? <Spinner /> : "Save"}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogPopup>
+    </AlertDialog>
+  );
+};
+
+const ResetTrafficDialog = ({
+  userId,
+  userName,
+  onReset,
+  open,
+  onOpenChange,
+  showTrigger = true,
+}: {
+  userId: string;
+  userName: string;
+  onReset: (userId: string) => Promise<void>;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
+}) => {
+  const [loading, setLoading] = useState(false);
+  const [innerOpen, setInnerOpen] = useState(false);
+  const actualOpen = open ?? innerOpen;
+  const setOpen = onOpenChange ?? setInnerOpen;
+
+  const handleReset = async () => {
+    setLoading(true);
+    try {
+      await onReset(userId);
+      toast.success(`Monthly traffic reset for ${userName}`);
+    } catch (error) {
+      toast.error("Failed to reset monthly traffic");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <AlertDialog open={actualOpen} onOpenChange={setOpen}>
+      {showTrigger && (
+        <AlertDialogTrigger
+          render={
+            <Button size="icon" variant="ghost" className="h-8 w-8" disabled={loading} />
+          }
+        >
+          <RefreshCw className="h-4 w-4" />
+        </AlertDialogTrigger>
+      )}
+      <AlertDialogPopup>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Reset this month's traffic?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will reset monthly traffic counters for <strong>{userName}</strong>.
+            Counter collection continues, and new usage will be accumulated from now on.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter variant="bare">
+          <AlertDialogClose render={<Button variant="ghost" />}>
+            Cancel
+          </AlertDialogClose>
+          <AlertDialogClose
+            render={<Button variant="destructive" disabled={loading} />}
+            onClick={handleReset}
+          >
+            Confirm Reset
+          </AlertDialogClose>
+        </AlertDialogFooter>
+      </AlertDialogPopup>
+    </AlertDialog>
+  );
+};
+
 const ResetSubKeyDialog = ({
   userId,
   userName,
   onSuccess,
+  open,
+  onOpenChange,
+  showTrigger = true,
 }: {
   userId: string;
   userName: string;
   onSuccess?: () => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  showTrigger?: boolean;
 }) => {
   const [loading, setLoading] = useState(false);
   const [customSubKey, setCustomSubKey] = useState("");
-  const [open, setOpen] = useState(false);
+  const [innerOpen, setInnerOpen] = useState(false);
+  const actualOpen = open ?? innerOpen;
+  const setOpen = onOpenChange ?? setInnerOpen;
 
   const handleResetSubKey = async () => {
     setLoading(true);
@@ -594,19 +912,21 @@ const ResetSubKeyDialog = ({
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogTrigger
-        render={
-          <Button
-            size="icon"
-            variant="ghost"
-            className="h-8 w-8"
-            disabled={loading}
-          />
-        }
-      >
-        <Key className="h-4 w-4" />
-      </AlertDialogTrigger>
+    <AlertDialog open={actualOpen} onOpenChange={handleOpenChange}>
+      {showTrigger && (
+        <AlertDialogTrigger
+          render={
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              disabled={loading}
+            />
+          }
+        >
+          <Key className="h-4 w-4" />
+        </AlertDialogTrigger>
+      )}
       <AlertDialogPopup>
         <AlertDialogHeader>
           <AlertDialogTitle>Reset Subscription Key?</AlertDialogTitle>
@@ -641,6 +961,59 @@ const ResetSubKeyDialog = ({
             onClick={handleResetSubKey}
           >
             {loading ? <Spinner /> : "Confirm Reset"}
+          </Button>
+        </AlertDialogFooter>
+      </AlertDialogPopup>
+    </AlertDialog>
+  );
+};
+
+const DeleteUserDialog = ({
+  userName,
+  open,
+  onOpenChange,
+  onDelete,
+}: {
+  userName: string;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onDelete: () => Promise<void>;
+}) => {
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      await onDelete();
+      toast.success(`User ${userName} deleted`);
+      onOpenChange(false);
+    } catch (error) {
+      toast.error("Failed to delete user");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogPopup>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete user{" "}
+            <strong>{userName}</strong> and remove related data.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter variant="bare">
+          <AlertDialogClose render={<Button variant="ghost" />}>
+            Cancel
+          </AlertDialogClose>
+          <Button
+            variant="destructive"
+            disabled={loading}
+            onClick={handleDelete}
+          >
+            {loading ? <Spinner /> : "Delete User"}
           </Button>
         </AlertDialogFooter>
       </AlertDialogPopup>
