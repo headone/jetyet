@@ -443,11 +443,18 @@ const AssignDialog = ({
   assignedNodes: UserNode[];
   onSuccess?: () => void;
 }) => {
-  const [selectedNodes, setSelectedNodes] = useState<Node[]>(
+  const getAssignedNodeModels = () =>
     assignedNodes
       .map((node) => nodes.find((n) => n.id === node.nodeId))
-      .filter((node) => !!node),
+      .filter((node): node is Node => node !== undefined);
+
+  const [selectedNodes, setSelectedNodes] = useState<Node[]>(
+    getAssignedNodeModels(),
   );
+
+  useEffect(() => {
+    setSelectedNodes(getAssignedNodeModels());
+  }, [assignedNodes, nodes]);
 
   const assignHandler = async () => {
     const callApi = (node: UserNode, assign: boolean) =>
