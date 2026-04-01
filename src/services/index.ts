@@ -78,6 +78,15 @@ interface Route {
 }
 
 const routes: Route[] = [];
+const DEFAULT_VLESS_TAG_CANDIDATES = [
+  "vless-reality",
+  "vless",
+  "reality",
+  "inbound",
+  "proxy",
+  "443",
+];
+
 function on<P extends PathKey, M extends MethodKey<P>>(
   path: P,
   method: M,
@@ -230,6 +239,57 @@ on("/api/nodes/:id/vless-debug", "GET", async (req) => {
     inboundTag,
     inboundUsers,
     perUserStats,
+  };
+});
+on("/api/nodes/:id/vless-debug-tags", "GET", async (req) => {
+  const id = req.params.id;
+  const node = getNode(id);
+  if (!node) return new Response("Node not found", { status: 404 });
+  if (node.type !== "vless") {
+    return new Response("Node is not a VLESS node", { status: 400 });
+  }
+
+  const api = new XtlsApi(node.host, "10086");
+  const envTags = (Bun.env.XRAY_INBOUND_TAG_CANDIDATES || "")
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+  const tagCandidates = [...new Set([...DEFAULT_VLESS_TAG_CANDIDATES, ...envTags])];
+
+  const scannedTags = [];
+  for (const tag of tagCandidates) {
+    const inboundUsersResponse = await api.handler.getInboundUsers(tag);
+    if (!inboundUsersResponse.isOk || !inboundUsersResponse.data) {
+      scannedTags.push({
+        tag,
+        ok: false,
+        userCount: 0,
+        users: [],
+        message: inboundUsersResponse.message || "Failed to fetch inbound users",
+      });
+      continue;
+    }
+
+    const users = (inboundUsersResponse.data.users as any[])
+      .filter((user) => user.protocol === "vless")
+      .map((user) => ({
+        username: user.username,
+        protocol: user.protocol,
+        vlessId: user.vless?.id,
+      }));
+
+    scannedTags.push({
+      tag,
+      ok: true,
+      userCount: users.length,
+      users,
+    });
+  }
+
+  return {
+    nodeId: node.id,
+    host: node.host,
+    scannedTags,
   };
 });
 // node api

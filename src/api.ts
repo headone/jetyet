@@ -121,6 +121,26 @@ export type AppSchema = {
       };
     };
   };
+  "/api/nodes/:id/vless-debug-tags": {
+    GET: {
+      params: { id: string };
+      response: {
+        nodeId: string;
+        host: string;
+        scannedTags: {
+          tag: string;
+          ok: boolean;
+          userCount: number;
+          users: {
+            username: string;
+            protocol?: string;
+            vlessId?: string;
+          }[];
+          message?: string;
+        }[];
+      };
+    };
+  };
   // nodes
   "/api/nodes": {
     GET: {
