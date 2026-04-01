@@ -141,6 +141,24 @@ export type AppSchema = {
       };
     };
   };
+  "/api/nodes/:id/vless-debug-assign": {
+    POST: {
+      params: { id: string };
+      body: { userId: string };
+      response: {
+        nodeId: string;
+        userId: string;
+        assignOk: boolean;
+        assignMessage?: string;
+        inboundTag: string;
+        inboundUsers: {
+          username: string;
+          protocol?: string;
+          vlessId?: string;
+        }[];
+      };
+    };
+  };
   // nodes
   "/api/nodes": {
     GET: {

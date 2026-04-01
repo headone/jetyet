@@ -292,6 +292,51 @@ on("/api/nodes/:id/vless-debug-tags", "GET", async (req) => {
     scannedTags,
   };
 });
+on("/api/nodes/:id/vless-debug-assign", "POST", async (req) => {
+  const id = req.params.id;
+  const node = getNode(id);
+  if (!node) return new Response("Node not found", { status: 404 });
+  if (node.type !== "vless") {
+    return new Response("Node is not a VLESS node", { status: 400 });
+  }
+
+  const { userId }: { userId: string } = await req.json();
+  const secrets = getUserSecrets(userId);
+  if (!secrets) return new Response("User not found", { status: 404 });
+
+  const inboundTag = "vless-reality";
+  let assignOk = false;
+  let assignMessage: string | undefined;
+
+  try {
+    await buildAuthenticator(node.type).assign(node, secrets);
+    assignOk = true;
+  } catch (error) {
+    assignMessage = error instanceof Error ? error.message : String(error);
+  }
+
+  const api = new XtlsApi(node.host, "10086");
+  const inboundUsersResponse = await api.handler.getInboundUsers(inboundTag);
+  const inboundUsers =
+    inboundUsersResponse.isOk && inboundUsersResponse.data
+      ? (inboundUsersResponse.data.users as any[])
+          .filter((user) => user.protocol === "vless")
+          .map((user) => ({
+            username: user.username,
+            protocol: user.protocol,
+            vlessId: user.vless?.id,
+          }))
+      : [];
+
+  return {
+    nodeId: node.id,
+    userId,
+    assignOk,
+    assignMessage,
+    inboundTag,
+    inboundUsers,
+  };
+});
 // node api
 on("/api/nodes", "GET", getAllNodes);
 on("/api/nodes", "POST", async (req) => {
