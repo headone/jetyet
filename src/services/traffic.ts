@@ -31,6 +31,14 @@ type XrayInboundUser = {
   };
 };
 
+type VlessSyncNodeDebug = {
+  nodeId: string;
+  statsUsers: number;
+  inboundUsers: number;
+  matchedUsers: number;
+  unmatchedUsernames: string[];
+};
+
 type TrafficUsageRow = {
   user_id: string;
   month_key: string;
@@ -300,6 +308,7 @@ export async function syncVlessTrafficUsage(): Promise<{
   deltaUplinkBytes: number;
   deltaDownlinkBytes: number;
   errors: { nodeId: string; message: string }[];
+  debug: VlessSyncNodeDebug[];
 }> {
   const monthKey = getCurrentMonthKey();
   const nodes = getAllNodes().filter((node) => node.type === "vless");
@@ -313,6 +322,7 @@ export async function syncVlessTrafficUsage(): Promise<{
   }
 
   const errors: { nodeId: string; message: string }[] = [];
+  const debug: VlessSyncNodeDebug[] = [];
   let processedUsers = 0;
   let deltaUplinkBytes = 0;
   let deltaDownlinkBytes = 0;
@@ -330,6 +340,7 @@ export async function syncVlessTrafficUsage(): Promise<{
       }
 
       const userIdByNodeIdentity = new Map(userIdByIdentity);
+      let inboundUsers = 0;
       const unmatchedUsernames = response.data.users
         .map((stat) => stat.username)
         .filter(
@@ -342,6 +353,7 @@ export async function syncVlessTrafficUsage(): Promise<{
           await api.handler.getInboundUsers(VLESS_INBOUND_TAG);
 
         if (inboundUsersResponse.isOk && inboundUsersResponse.data) {
+          inboundUsers = inboundUsersResponse.data.users.length;
           for (const inboundUser of inboundUsersResponse.data
             .users as XrayInboundUser[]) {
             if (inboundUser.protocol !== "vless") continue;
@@ -358,6 +370,8 @@ export async function syncVlessTrafficUsage(): Promise<{
         }
       }
 
+      let nodeMatchedUsers = 0;
+
       for (const stat of response.data.users) {
         const username = stat.username;
         if (!username) continue;
@@ -366,6 +380,7 @@ export async function syncVlessTrafficUsage(): Promise<{
         if (!userId) continue;
 
         processedUsers += 1;
+        nodeMatchedUsers += 1;
         const sourceKey = `${node.id}:${username}`;
 
         deltaUplinkBytes += consumeMonotonicCounter({
@@ -388,6 +403,20 @@ export async function syncVlessTrafficUsage(): Promise<{
           monthKey,
         });
       }
+
+      debug.push({
+        nodeId: node.id,
+        statsUsers: response.data.users.length,
+        inboundUsers,
+        matchedUsers: nodeMatchedUsers,
+        unmatchedUsernames: response.data.users
+          .map((stat) => stat.username)
+          .filter(
+            (username): username is string =>
+              Boolean(username) && !userIdByNodeIdentity.has(username),
+          )
+          .slice(0, 20),
+      });
     } catch (error) {
       errors.push({
         nodeId: node.id,
@@ -403,6 +432,7 @@ export async function syncVlessTrafficUsage(): Promise<{
     deltaUplinkBytes,
     deltaDownlinkBytes,
     errors,
+    debug,
   };
 }
 

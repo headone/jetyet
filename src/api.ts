@@ -78,6 +78,13 @@ export type AppSchema = {
         deltaUplinkBytes: number;
         deltaDownlinkBytes: number;
         syncErrors: { nodeId: string; message: string }[];
+        syncDebug: {
+          nodeId: string;
+          statsUsers: number;
+          inboundUsers: number;
+          matchedUsers: number;
+          unmatchedUsernames: string[];
+        }[];
         enforcement: {
           assigned: number;
           deassigned: number;
