@@ -157,6 +157,20 @@ export type AppSchema = {
           protocol?: string;
           vlessId?: string;
         }[];
+        userStats: {
+          byUserId: {
+            ok: boolean;
+            uplink: number;
+            downlink: number;
+            message?: string;
+          };
+          byVlessId: {
+            ok: boolean;
+            uplink: number;
+            downlink: number;
+            message?: string;
+          };
+        };
       };
     };
   };

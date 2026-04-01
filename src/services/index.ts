@@ -341,6 +341,30 @@ on("/api/nodes/:id/vless-debug-assign", "POST", async (req) => {
           }))
       : [];
 
+  const statsByUserIdResponse = await api.stats.getUserStats(secrets.userId);
+  const statsByVlessIdResponse = await api.stats.getUserStats(secrets.vless);
+
+  const userStats = {
+    byUserId: {
+      ok: Boolean(statsByUserIdResponse.isOk && statsByUserIdResponse.data?.user),
+      uplink: statsByUserIdResponse.data?.user?.uplink ?? 0,
+      downlink: statsByUserIdResponse.data?.user?.downlink ?? 0,
+      message:
+        statsByUserIdResponse.isOk && statsByUserIdResponse.data?.user
+          ? undefined
+          : statsByUserIdResponse.message || "No user stats returned",
+    },
+    byVlessId: {
+      ok: Boolean(statsByVlessIdResponse.isOk && statsByVlessIdResponse.data?.user),
+      uplink: statsByVlessIdResponse.data?.user?.uplink ?? 0,
+      downlink: statsByVlessIdResponse.data?.user?.downlink ?? 0,
+      message:
+        statsByVlessIdResponse.isOk && statsByVlessIdResponse.data?.user
+          ? undefined
+          : statsByVlessIdResponse.message || "No user stats returned",
+    },
+  };
+
   return {
     nodeId: node.id,
     userId,
@@ -349,6 +373,7 @@ on("/api/nodes/:id/vless-debug-assign", "POST", async (req) => {
     assignMessage,
     inboundTag,
     inboundUsers,
+    userStats,
   };
 });
 // node api
