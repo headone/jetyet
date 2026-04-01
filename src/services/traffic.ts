@@ -35,6 +35,7 @@ type VlessSyncNodeDebug = {
   nodeId: string;
   statsUsers: number;
   inboundUsers: number;
+  fallbackStatsUsers: number;
   matchedUsers: number;
   unmatchedUsernames: string[];
 };
@@ -339,40 +340,56 @@ export async function syncVlessTrafficUsage(): Promise<{
         continue;
       }
 
+      const inboundUsersResponse =
+        await api.handler.getInboundUsers(VLESS_INBOUND_TAG);
       const userIdByNodeIdentity = new Map(userIdByIdentity);
       let inboundUsers = 0;
-      const unmatchedUsernames = response.data.users
-        .map((stat) => stat.username)
-        .filter(
-          (username): username is string =>
-            Boolean(username) && !userIdByNodeIdentity.has(username),
-        );
+      const runtimeUsers =
+        inboundUsersResponse.isOk && inboundUsersResponse.data
+          ? (inboundUsersResponse.data.users as XrayInboundUser[]).filter(
+              (user) => user.protocol === "vless",
+            )
+          : [];
+      inboundUsers = runtimeUsers.length;
 
-      if (unmatchedUsernames.length > 0) {
-        const inboundUsersResponse =
-          await api.handler.getInboundUsers(VLESS_INBOUND_TAG);
+      for (const inboundUser of runtimeUsers) {
+        const matchedUserId =
+          (inboundUser.vless?.id
+            ? userIdByIdentity.get(inboundUser.vless.id)
+            : undefined) ?? userIdByIdentity.get(inboundUser.username);
 
-        if (inboundUsersResponse.isOk && inboundUsersResponse.data) {
-          inboundUsers = inboundUsersResponse.data.users.length;
-          for (const inboundUser of inboundUsersResponse.data
-            .users as XrayInboundUser[]) {
-            if (inboundUser.protocol !== "vless") continue;
+        if (!matchedUserId) continue;
 
-            const matchedUserId =
-              (inboundUser.vless?.id
-                ? userIdByIdentity.get(inboundUser.vless.id)
-                : undefined) ?? userIdByIdentity.get(inboundUser.username);
+        userIdByNodeIdentity.set(inboundUser.username, matchedUserId);
+      }
 
-            if (!matchedUserId) continue;
+      let effectiveStats = response.data.users;
+      let fallbackStatsUsers = 0;
 
-            userIdByNodeIdentity.set(inboundUser.username, matchedUserId);
+      if (effectiveStats.length === 0 && runtimeUsers.length > 0) {
+        const fallbackStats = [];
+        for (const runtimeUser of runtimeUsers) {
+          if (!runtimeUser.username) continue;
+
+          const userStatsResponse = await api.stats.getUserStats(
+            runtimeUser.username,
+          );
+          if (!userStatsResponse.isOk || !userStatsResponse.data?.user) {
+            continue;
           }
+
+          fallbackStats.push(userStatsResponse.data.user);
+        }
+
+        if (fallbackStats.length > 0) {
+          effectiveStats = fallbackStats;
+          fallbackStatsUsers = fallbackStats.length;
         }
       }
 
       let nodeMatchedUsers = 0;
 
-      for (const stat of response.data.users) {
+      for (const stat of effectiveStats) {
         const username = stat.username;
         if (!username) continue;
 
@@ -408,8 +425,9 @@ export async function syncVlessTrafficUsage(): Promise<{
         nodeId: node.id,
         statsUsers: response.data.users.length,
         inboundUsers,
+        fallbackStatsUsers,
         matchedUsers: nodeMatchedUsers,
-        unmatchedUsernames: response.data.users
+        unmatchedUsernames: effectiveStats
           .map((stat) => stat.username)
           .filter(
             (username): username is string =>

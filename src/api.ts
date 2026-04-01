@@ -82,6 +82,7 @@ export type AppSchema = {
           nodeId: string;
           statsUsers: number;
           inboundUsers: number;
+          fallbackStatsUsers: number;
           matchedUsers: number;
           unmatchedUsernames: string[];
         }[];

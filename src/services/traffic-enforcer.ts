@@ -121,6 +121,7 @@ export async function syncTrafficAndEnforceLimits(): Promise<{
     nodeId: string;
     statsUsers: number;
     inboundUsers: number;
+    fallbackStatsUsers: number;
     matchedUsers: number;
     unmatchedUsernames: string[];
   }[];
