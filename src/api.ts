@@ -99,6 +99,28 @@ export type AppSchema = {
       };
     };
   };
+  "/api/nodes/:id/vless-debug": {
+    GET: {
+      params: { id: string };
+      response: {
+        nodeId: string;
+        host: string;
+        inboundTag: string;
+        inboundUsers: {
+          username: string;
+          protocol?: string;
+          vlessId?: string;
+        }[];
+        perUserStats: {
+          username: string;
+          ok: boolean;
+          uplink: number;
+          downlink: number;
+          message?: string;
+        }[];
+      };
+    };
+  };
   // nodes
   "/api/nodes": {
     GET: {

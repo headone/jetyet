@@ -25,6 +25,7 @@ import {
 } from "./node";
 import type { AppSchema } from "@/api";
 import { buildAuthenticator } from "@/subscription";
+import { XtlsApi } from "@remnawave/xtls-sdk";
 
 type PathKey = keyof AppSchema;
 type MethodKey<P extends PathKey> = keyof AppSchema[P];
@@ -173,6 +174,63 @@ on("/api/users/:id/traffic/reset", "POST", async (req) => {
 });
 on("/api/traffic/sync", "POST", async () => {
   return syncTrafficAndEnforceLimits();
+});
+on("/api/nodes/:id/vless-debug", "GET", async (req) => {
+  const id = req.params.id;
+  const node = getNode(id);
+  if (!node) return new Response("Node not found", { status: 404 });
+  if (node.type !== "vless") {
+    return new Response("Node is not a VLESS node", { status: 400 });
+  }
+
+  const api = new XtlsApi(node.host, "10086");
+  const inboundTag = "vless-reality";
+  const inboundUsersResponse = await api.handler.getInboundUsers(inboundTag);
+
+  if (!inboundUsersResponse.isOk || !inboundUsersResponse.data) {
+    return new Response(
+      inboundUsersResponse.message || "Failed to fetch inbound users",
+      { status: 502 },
+    );
+  }
+
+  const inboundUsers = (inboundUsersResponse.data.users as any[])
+    .filter((user) => user.protocol === "vless")
+    .map((user) => ({
+      username: user.username,
+      protocol: user.protocol,
+      vlessId: user.vless?.id,
+    }));
+
+  const perUserStats = [];
+  for (const user of inboundUsers) {
+    const statsResponse = await api.stats.getUserStats(user.username);
+    if (!statsResponse.isOk || !statsResponse.data?.user) {
+      perUserStats.push({
+        username: user.username,
+        ok: false,
+        uplink: 0,
+        downlink: 0,
+        message: statsResponse.message || "No stats returned",
+      });
+      continue;
+    }
+
+    perUserStats.push({
+      username: user.username,
+      ok: true,
+      uplink: statsResponse.data.user.uplink,
+      downlink: statsResponse.data.user.downlink,
+    });
+  }
+
+  return {
+    nodeId: node.id,
+    host: node.host,
+    inboundTag,
+    inboundUsers,
+    perUserStats,
+  };
 });
 // node api
 on("/api/nodes", "GET", getAllNodes);
