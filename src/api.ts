@@ -149,6 +149,7 @@ export type AppSchema = {
         nodeId: string;
         userId: string;
         assignOk: boolean;
+        assignAdded: boolean;
         assignMessage?: string;
         inboundTag: string;
         inboundUsers: {

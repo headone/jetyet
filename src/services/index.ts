@@ -305,17 +305,30 @@ on("/api/nodes/:id/vless-debug-assign", "POST", async (req) => {
   if (!secrets) return new Response("User not found", { status: 404 });
 
   const inboundTag = "vless-reality";
+  const api = new XtlsApi(node.host, "10086");
   let assignOk = false;
+  let assignAdded = false;
   let assignMessage: string | undefined;
 
   try {
-    await buildAuthenticator(node.type).assign(node, secrets);
-    assignOk = true;
+    const response = await api.handler.addVlessUser({
+      uuid: secrets.vless,
+      tag: inboundTag,
+      flow: "xtls-rprx-vision",
+      username: secrets.userId,
+      level: 0,
+    });
+    assignOk = response.isOk;
+    assignAdded = Boolean(response.data?.isAdded);
+    if (!response.isOk) {
+      assignMessage = response.message || "Failed to assign VLESS user";
+    } else if (!assignAdded) {
+      assignMessage = "User already exists or was not newly added";
+    }
   } catch (error) {
     assignMessage = error instanceof Error ? error.message : String(error);
   }
 
-  const api = new XtlsApi(node.host, "10086");
   const inboundUsersResponse = await api.handler.getInboundUsers(inboundTag);
   const inboundUsers =
     inboundUsersResponse.isOk && inboundUsersResponse.data
@@ -332,6 +345,7 @@ on("/api/nodes/:id/vless-debug-assign", "POST", async (req) => {
     nodeId: node.id,
     userId,
     assignOk,
+    assignAdded,
     assignMessage,
     inboundTag,
     inboundUsers,
