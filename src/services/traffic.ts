@@ -4,6 +4,7 @@ import { XtlsApi } from "@remnawave/xtls-sdk";
 import type { UserMonthlyTraffic } from "@/types";
 
 const XRAY_API_PORT = "10086";
+const VLESS_INBOUND_TAG = "vless-reality";
 const BILLING_TIME_ZONE =
   Bun.env.TRAFFIC_TIMEZONE ||
   Bun.env.SUBSCRIPTION_TIMEZONE ||
@@ -20,6 +21,14 @@ type SourceStateRow = {
 type VlessSecretRow = {
   user_id: string;
   vless: string;
+};
+
+type XrayInboundUser = {
+  username: string;
+  protocol?: string;
+  vless?: {
+    id?: string;
+  };
 };
 
 type TrafficUsageRow = {
@@ -320,11 +329,40 @@ export async function syncVlessTrafficUsage(): Promise<{
         continue;
       }
 
+      const userIdByNodeIdentity = new Map(userIdByIdentity);
+      const unmatchedUsernames = response.data.users
+        .map((stat) => stat.username)
+        .filter(
+          (username): username is string =>
+            Boolean(username) && !userIdByNodeIdentity.has(username),
+        );
+
+      if (unmatchedUsernames.length > 0) {
+        const inboundUsersResponse =
+          await api.handler.getInboundUsers(VLESS_INBOUND_TAG);
+
+        if (inboundUsersResponse.isOk && inboundUsersResponse.data) {
+          for (const inboundUser of inboundUsersResponse.data
+            .users as XrayInboundUser[]) {
+            if (inboundUser.protocol !== "vless") continue;
+
+            const matchedUserId =
+              (inboundUser.vless?.id
+                ? userIdByIdentity.get(inboundUser.vless.id)
+                : undefined) ?? userIdByIdentity.get(inboundUser.username);
+
+            if (!matchedUserId) continue;
+
+            userIdByNodeIdentity.set(inboundUser.username, matchedUserId);
+          }
+        }
+      }
+
       for (const stat of response.data.users) {
         const username = stat.username;
         if (!username) continue;
 
-        const userId = userIdByIdentity.get(username);
+        const userId = userIdByNodeIdentity.get(username);
         if (!userId) continue;
 
         processedUsers += 1;
