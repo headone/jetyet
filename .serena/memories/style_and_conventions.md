@@ -1,0 +1,4 @@
+- Codebase uses TypeScript with ES module syntax and double-quoted strings.
+- Backend service functions are grouped in `src/services/*.ts`; protocol-specific logic lives in `src/subscription/*.ts`.
+- Prefer small focused helpers, typed row interfaces for DB records, and explicit mapping from DB rows to public types.
+- React pages use function components and hooks; backend code favors straightforward imperative logic over heavy abstraction.

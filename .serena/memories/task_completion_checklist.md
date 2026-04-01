@@ -1,0 +1,3 @@
+- Run `bun run build` after code changes to verify the project still compiles.
+- Review affected traffic/accounting flows for identifier mismatches between node APIs and local DB mappings.
+- If backend protocol logic changes, also sanity-check matching assign/deassign behavior in `src/subscription/*`.

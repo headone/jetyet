@@ -1,0 +1,4 @@
+- Purpose: subscription/user management app for proxy nodes, including VLESS and Hysteria2 users, node assignment, subscription generation, and traffic accounting/enforcement.
+- Stack: Bun runtime, TypeScript, React 19 frontend, Tailwind CSS, SQLite storage, @remnawave/xtls-sdk for Xray/XTLS node integration.
+- Structure: `src/index.ts` boots the app/API, `src/services` contains backend/domain logic, `src/subscription` contains protocol-specific auth/config generation, `src/pages` contains React screens, `src/db` contains SQLite setup, `src/api.ts` defines API contracts.
+- Key domain areas for this task: `src/services/traffic.ts` handles traffic usage sync/accounting; `src/subscription/vless.ts` handles VLESS user assignment/deassignment.

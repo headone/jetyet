@@ -297,7 +297,11 @@ export async function syncVlessTrafficUsage(): Promise<{
   const secretRows = db
     .query("SELECT user_id, vless FROM user_secrets")
     .all() as VlessSecretRow[];
-  const userIdByVless = new Map(secretRows.map((row) => [row.vless, row.user_id]));
+  const userIdByIdentity = new Map<string, string>();
+  for (const row of secretRows) {
+    userIdByIdentity.set(row.user_id, row.user_id);
+    userIdByIdentity.set(row.vless, row.user_id);
+  }
 
   const errors: { nodeId: string; message: string }[] = [];
   let processedUsers = 0;
@@ -320,7 +324,7 @@ export async function syncVlessTrafficUsage(): Promise<{
         const username = stat.username;
         if (!username) continue;
 
-        const userId = userIdByVless.get(username);
+        const userId = userIdByIdentity.get(username);
         if (!userId) continue;
 
         processedUsers += 1;

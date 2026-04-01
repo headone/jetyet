@@ -32,7 +32,11 @@ class VlessAuthenticator implements Authenticator {
 
   async deassign(node: Node, secrets: UserSecrets): Promise<void> {
     const api = new XtlsApi(node.host, this.apiPort);
-    const response = await api.handler.removeUser(this.tag, secrets.vless);
+    let response = await api.handler.removeUser(this.tag, secrets.userId);
+
+    if (!response.isOk && secrets.vless !== secrets.userId) {
+      response = await api.handler.removeUser(this.tag, secrets.vless);
+    }
 
     if (!response.isOk) {
       throw new Error(`Failed to deassign VLESS user: ${response.message}`);

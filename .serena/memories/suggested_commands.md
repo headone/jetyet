@@ -1,0 +1,5 @@
+- `bun --hot src/index.ts`: run the app in development.
+- `bun src/index.ts`: run the app in production-style mode.
+- `bun run build`: build the project into `dist/`.
+- `git diff -- <path>`: inspect local changes on Windows PowerShell.
+- `rg <pattern> src`: fast code search in the repo.
