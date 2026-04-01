@@ -21,7 +21,7 @@ class VlessAuthenticator implements Authenticator {
       uuid: secrets.vless,
       tag: this.tag,
       flow: this.flow,
-      username: secrets.vless,
+      username: secrets.userId,
       level: 0,
     });
 
